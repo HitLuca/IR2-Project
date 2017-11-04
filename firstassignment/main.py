@@ -240,15 +240,15 @@ if params['dataset'] == 'train':
     # Continue from a previous saved checkpoint, if it exists.
     checkpoint = tf.train.latest_checkpoint(args.model_dir)
     if checkpoint:
-      print 'Loading checkpoint', checkpoint
+      print('Loading checkpoint', checkpoint)
       saver.restore(sess, checkpoint)
     else:
-      print 'No existing checkpoint found.'
+      print('No existing checkpoint found.')
       sess.run(init)
 
     # Check the current state of the network.
     i = sess.run([global_step])[0]
-    print 'Running %d steps.' % (params['steps'] - i)
+    print('Running %d steps.' % (params['steps'] - i))
     while i < params['steps']:
       i = sess.run([global_step, opt_op])[0]
       # Evaluation will be performed on saved checkpoints
@@ -256,7 +256,7 @@ if params['dataset'] == 'train':
       if i % params['eval_steps'] == 0 or i == params['steps']-1:
         saver.save(sess, args.model_dir + 'model.ckpt', global_step=i)
 else:
-  print 'Evaluating on', params['dataset']
+  print('Evaluating on', params['dataset'])
   # For each checkpoint the entire dataset is evaluated.
   steps_per_eval = params['%s_size' % params['dataset']]
   checkpoint = None
@@ -283,7 +283,7 @@ else:
                                                     merged_summary])
       # Pass the summary to the writer, which stores it for Tensorboard.
       writer.add_summary(cur_summary, global_step=cur_step)
-      print 'Step %d: %.02f' % (cur_step, ndcg_value)
+      print('Step %d: %.02f' % (cur_step, ndcg_value))
       if cur_step == params['steps']:
         break
 
