@@ -16,10 +16,8 @@ def pointwise_regression_loss(doc_scores, labels):
         (doc_scores - tf.cast(labels, tf.float32)) ** 2
     )
 
-
 def pointwise_classification_loss(doc_scores, labels):
-    raise NotImplementedError('Pointwise classification is not implemented')
-
+    return -tf.reduce_sum(tf.log(tf.nn.softmax_cross_entropy_with_logits(labels=labels, logits=doc_scores) + 1e-10))
 
 def pairwise_loss(doc_scores, labels):
     raise NotImplementedError('Pairwise is not implemented')
@@ -27,3 +25,14 @@ def pairwise_loss(doc_scores, labels):
 
 def listwise_loss(doc_scores, labels):
     raise NotImplementedError('Listwise is not implemented')
+
+# functions they recommend using
+# tf.Print
+# tf.meshgrid
+# tf.less
+# tf.tile
+# tf.where
+# tf.zeros_like
+# tf.reduce_sum
+# tf.cumsum
+# tf.sigmoid

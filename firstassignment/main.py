@@ -79,7 +79,7 @@ else:
 
 def input_fn(params):
     '''
-    Outputs batches of all documents beloning to one query.
+    Outputs batches of all documents belonging to one query.
   
     Returns:
       A dictionary of tensors from the given dataset.
@@ -130,7 +130,7 @@ with open(args.input_dir + '/features.txt', 'r') as f:
 # feature_columns will be used to parse our features.
 # It wil contain FeatureColumn objects that explain
 # how the input should be parsed.
-# In the Lerot case every feature is just a scalar.
+# In the Last case every feature is just a scalar.
 feature_columns = []
 for featid in features:
     if featid not in ['qid', 'label']:
@@ -146,7 +146,6 @@ documents, labels = input_fn(params)
 #########################################
 # Scoring and loss calculation.
 #########################################
-
 # The scores the model assigns the documents,
 # these are 'logits'.
 doc_scores = bsu.create_scoring_model(documents, params)
@@ -161,7 +160,6 @@ ndcg = bsu.get_ndcg_from_scores(labels, doc_scores)
 # Summary writers
 # These values will appear in Tensorboard
 #########################################
-
 # Report the loss.
 tf.summary.scalar('loss', loss)
 
