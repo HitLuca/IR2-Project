@@ -1,3 +1,9 @@
+## Students:
+# Heng Lin 11392533
+# Joop Pascha 10090614
+# Luca Simonetto 11413522
+# Muriel Hol 10161740
+
 import tensorflow as tf
 
 
