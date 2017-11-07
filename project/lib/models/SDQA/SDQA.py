@@ -15,7 +15,7 @@ class SDQA:
         self.kernel_size = kernel_size
         self.input_shape = input_shape
 
-    def _define_network(self, features):
+    def define_network(self, features):
 
         with tf.variable_scope(None, default_name="ConvNet", reuse=True) as scope:
             input_layer = tf.reshape(features, [-1, self.input_shape])
