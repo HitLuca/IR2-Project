@@ -29,6 +29,7 @@ def pointwise_classification_loss(doc_scores, labels):
 
 def pairwise_loss(doc_scores, labels):
 
+    # using sigma=1 for the logistic function
     def pairwise_cost(i, j, sigma=1):
         return tf.log(1 + tf.exp(-sigma * (i - j)))
 
@@ -38,44 +39,34 @@ def pairwise_loss(doc_scores, labels):
     li = labels[:-1, :]
     lj = labels[1:, :]
 
+    # mask for correct ordered entries
     mask0 = tf.cast(tf.greater(li, lj), tf.float32)
+    # mask for incorrect ordered entries
     mask1 = tf.cast(tf.less(li, lj), tf.float32)
+    # mask for the entries that should be equally ordered
     mask2 = tf.cast(tf.equal(li, lj), tf.float32)
 
     sigma = 1.0
 
     S_ij = mask0 + (-1.0 * mask1)
-    cost = 0.5 * (1 - S_ij) * sigma * (si - sj)
+    _loss = 0.5 * (1 - S_ij) * sigma * (si - sj)
 
-    loss = cost + mask0 * pairwise_cost(si, sj) + mask1 * pairwise_cost(sj, si) + mask2 * pairwise_cost(si, sj)
+    loss = _loss + mask0 * pairwise_cost(si, sj) + mask1 * pairwise_cost(sj, si) + mask2 * pairwise_cost(si, sj)
 
     return tf.reduce_sum(loss)
 
 
 def listwise_loss(doc_scores, labels):
 
-    def score(s):
-        s_exp = tf.exp(s)
-        den = tf.cumsum(s_exp, reverse=True)
-        return tf.reduce_prod(tf.divide(s_exp, den))
-
+    # use the top k entries to calculate the cost
     def scoreK(s, k=6):
         s_exp = tf.exp(s)
         den = tf.cumsum(s_exp, reverse=True)
         return tf.reduce_prod(tf.divide(s_exp[:k, :], den[:k]))
 
+    # calculate the top k score for docs and labels
     p_score = scoreK(doc_scores)
     p_labels = scoreK(tf.cast(labels, tf.float32))
 
+    # return the loss (cross entropy between the score and labels)
     return -tf.multiply(p_labels, tf.log(p_score)) * 100000000
-
-# functions they recommend using
-# tf.Print
-# tf.meshgrid
-# tf.less
-# tf.tile
-# tf.where
-# tf.zeros_like
-# tf.reduce_sum
-# tf.cumsum
-# tf.sigmoid
