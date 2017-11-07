@@ -1,16 +1,18 @@
 from .lib.models.SDQA import SDQA
+from .lib.utils.losses import cosine_sim_loss
 
 import tensorflow as tf
 
 
 # define the parameters
+batch_size = 128
 learning_rate = 0.001
 activation_fn = tf.nn.relu
 restore = False
 
 # TODO: To be defined
-checkpoint_path = ''
-checkpoint_prefix = ''
+checkpoint_path = './ckpt/'
+checkpoint_prefix = 'ckpt_sdqa'
 
 
 ##########################
@@ -30,12 +32,14 @@ features1 = tf.placeholder(dtype=tf.float32, shape=[1, 48536])
 features2 = tf.placeholder(dtype=tf.float32, shape=[1, 48536])
 
 # logits for 2 diff inputs
-n1res = nn.define_network(features1)
-n2res = nn.define_network(features2)
+logit1 = nn.define_network(features1)
+logit2 = nn.define_network(features2)
 
 # calculate loss
-# TODO: Define the loss function
-loss = 0
+# TODO: get the labels
+labels = tf.placeholder(dtype=tf.float32, shape=[batch_size])
+
+loss = cosine_sim_loss(logit1, logit2, labels, m=1)
 
 optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(loss)
 

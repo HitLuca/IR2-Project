@@ -5,3 +5,7 @@ firstassignment/models/
 *.pyc
 
 project/dataset/data/*
+project/ckpt/checkpoint
+project/ckpt/*.index
+project/ckpt/*.meta
+project/ckpt/*.data*
