@@ -221,6 +221,9 @@ writer = tf.summary.FileWriter(summary_folder)
 # Operator to save checkpoint.
 saver = tf.train.Saver()
 
+config = tf.ConfigProto()
+config.gpu_options.allow_growth = True
+
 # Our loop is different depening on whether,
 # we are performing training or evaluation.
 if params['dataset'] == 'train':
@@ -234,7 +237,7 @@ if params['dataset'] == 'train':
                              save_model_secs=0)
 
     # At this point the model will be instantiated and actually ran.
-    with sv.managed_session() as sess:
+    with sv.managed_session(config=config) as sess:
 
         # Continue from a previous saved checkpoint, if it exists.
         checkpoint = tf.train.latest_checkpoint(args.model_dir)

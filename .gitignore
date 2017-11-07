@@ -3,3 +3,5 @@ firstassignment/NP2003/Fold1/Raw/*
 .idea
 firstassignment/models/
 *.pyc
+
+project/dataset/data/*
