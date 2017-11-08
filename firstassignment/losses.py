@@ -57,16 +57,6 @@ def pairwise_loss(doc_scores, labels):
 
 
 def listwise_loss(doc_scores, labels):
-
-    # use the top k entries to calculate the cost
-    def scoreK(s, k=6):
-        s_exp = tf.exp(s)
-        den = tf.cumsum(s_exp, reverse=True)
-        return tf.reduce_prod(tf.divide(s_exp[:k, :], den[:k]))
-
-    # calculate the top k score for docs and labels
-    p_score = scoreK(doc_scores)
-    p_labels = scoreK(tf.cast(labels, tf.float32))
-
-    # return the loss (cross entropy between the score and labels)
-    return -tf.multiply(p_labels, tf.log(p_score)) * 100000000
+    k = 6
+    den = tf.log(tf.maximum(tf.cumsum(tf.exp(doc_scores), reverse=True), 1e-25))
+    return - tf.reduce_sum(doc_scores[:k, :] - den[:k])
