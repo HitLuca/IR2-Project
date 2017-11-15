@@ -9,4 +9,9 @@ https://goo.gl/S7RsZJ
 
 In addition, we have an overview of our paper process which is numbered by date in order to obtain an overview of our report. See **report/**.
 
+Useful links:
+
+- Data-sets with instant access: https://goo.gl/ZUji25
+- 
+
 [1]: Das, A., Yenala, H., Chinnakotla, M., & Shrivastava, M. (2016). Together we stand: Siamese networks for similar question retrieval. In Proceedings of the 54th Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers) (Vol. 1, pp. 378-387).
