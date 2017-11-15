@@ -1,7 +1,7 @@
-firstassignment/__pycache__/
-firstassignment/NP2003/Fold1/Raw/*
+assignment1/__pycache__/
+assignment1/NP2003/Fold1/Raw/*
 .idea
-firstassignment/models/
+assignment1/models/
 *.pyc
 
 project/dataset/data/*

@@ -1,2 +1,5 @@
-# ir2
-Information Retrieval - Group Project
+___
+# Information Retrieval project at the University of Amsterdam
+____
+
+
