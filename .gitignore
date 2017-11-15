@@ -4,8 +4,8 @@ assignment1/NP2003/Fold1/Raw/*
 assignment1/models/
 *.pyc
 
-project/dataset/data/*
-project/ckpt/checkpoint
-project/ckpt/*.index
-project/ckpt/*.meta
-project/ckpt/*.data*
+code/data/*
+checkpoint
+*.index
+*.meta
+*.data*
