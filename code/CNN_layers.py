@@ -29,6 +29,15 @@ def convolutional_layer(x, kernel, bias, reuse = True):
     conv = filter(x, kernel, conv_biasses[0],
                    relu=True, pool=True, norm=True, name="conv")
 
+
+    '''
+    tf.layers.conv2d()
+    '''
+
 def fully_connected_layer(x, weights, bias):
     z = inner_product(x, weights, bias, name = 'fully_connected')
 
+    '''
+    activation = tf.nn.xw_plus_b(x, weight, bias)
+    activation = tf.nn.relu(activation)
+    '''
