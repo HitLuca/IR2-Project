@@ -4,7 +4,7 @@ assignment1/NP2003/Fold1/Raw/*
 assignment1/models/
 *.pyc
 
-code/data/*
+code/data/Quora/
 checkpoint
 *.index
 *.meta

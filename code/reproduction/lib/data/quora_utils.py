@@ -36,7 +36,9 @@ class QuoraDataset:
         self.sanitized_trigrams_dataset_filepath = self.dataset_folder + self.sanitized_trigrams_dataset_filename
 
         self.dataset = None
+        self.vocabulary = None
         self.batch_index = 0
+        self.dataset_version = None
 
     def fix_dataset(self):
         fixed_dataset_filepath = self.dataset_filepath + '.fixed'
@@ -141,14 +143,14 @@ class QuoraDataset:
         if not os.path.exists(self.sanitized_trigrams_dataset_filepath):
             sanitized_dataset = []
             original_dataset = self.load_quora_dataset_sanitized()
-            trigrams_vocabulary = self.load_trigrams_vocabulary(original_dataset,
-                                                                self.sanitized_trigrams_vocabulary_filepath)
-            sort_idx = trigrams_vocabulary.argsort()
+            self.vocabulary = self.load_trigrams_vocabulary(original_dataset,
+                                                            self.sanitized_trigrams_vocabulary_filepath)
+            sort_idx = self.vocabulary.argsort()
             for i in range(len(original_dataset)):
                 entry = original_dataset[i]
                 new_entry = entry
-                new_entry['question1'] = self.extract_trigrams(entry['question1'], trigrams_vocabulary, sort_idx)
-                new_entry['question2'] = self.extract_trigrams(entry['question2'], trigrams_vocabulary, sort_idx)
+                new_entry['question1'] = self.extract_trigrams(entry['question1'], self.vocabulary, sort_idx)
+                new_entry['question2'] = self.extract_trigrams(entry['question2'], self.vocabulary, sort_idx)
                 if new_entry['question1'] is None or new_entry['question2'] is None:
                     continue
                 sanitized_dataset.append(new_entry)
@@ -160,18 +162,18 @@ class QuoraDataset:
     def load_dataset_trigrams(self):
         if not os.path.exists(self.trigrams_dataset_filepath):
             original_dataset = self.load_quora_dataset()
-            trigrams_vocabulary = self.load_trigrams_vocabulary(original_dataset, self.trigrams_vocabulary_filepath)
+            self.vocabulary = self.load_trigrams_vocabulary(original_dataset, self.trigrams_vocabulary_filepath)
 
             trigrams_dataset = []
-            sort_idx = trigrams_vocabulary.argsort()
+            sort_idx = self.vocabulary.argsort()
             for i in range(len(original_dataset)):
                 entry = original_dataset[i]
                 new_entry = entry
                 question1 = entry['question1']
                 question2 = entry['question2']
 
-                new_entry['question1'] = self.extract_trigrams(question1, trigrams_vocabulary, sort_idx)
-                new_entry['question2'] = self.extract_trigrams(question2, trigrams_vocabulary, sort_idx)
+                new_entry['question1'] = self.extract_trigrams(question1, self.vocabulary, sort_idx)
+                new_entry['question2'] = self.extract_trigrams(question2, self.vocabulary, sort_idx)
                 if new_entry['question1'] is None or new_entry['question2'] is None:
                     continue
                 trigrams_dataset.append(new_entry)
@@ -181,17 +183,26 @@ class QuoraDataset:
             return self.load_from_binary(self.trigrams_dataset_filepath)
 
     def init_dataset(self, shuffle, dataset_version):
+        self.dataset_version = dataset_version
         if dataset_version == 'default':
             self.dataset = self.load_quora_dataset()
         if dataset_version == 'trigrams':
             self.dataset = self.load_dataset_trigrams()
+            self.vocabulary = self.load_from_binary(self.trigrams_vocabulary_filepath)
         if dataset_version == 'default_sanitized':
             self.dataset = self.load_quora_dataset_sanitized()
         if dataset_version == 'trigrams_sanitized':
             self.dataset = self.load_dataset_trigrams_sanitized()
+            self.vocabulary = self.load_from_binary(self.sanitized_trigrams_vocabulary_filepath)
 
         if shuffle:
             random.shuffle(self.dataset)
+
+    def get_vocabulary_size(self):
+        if self.vocabulary is not None:
+            return len(self.vocabulary)
+        else:
+            return NotImplementedError
 
     def get_next_batch(self, batch_size):
         self.batch_index += batch_size
@@ -208,10 +219,11 @@ class QuoraDataset:
             pickle.dump(data, f, pickle.HIGHEST_PROTOCOL)
 
 
-dataset_folder = 'Quora'
-shuffle_dataset = True
-batch_size = 1
-
-quora = QuoraDataset(dataset_folder)
-quora.init_dataset(shuffle_dataset, 'trigrams')
-print(quora.get_next_batch(batch_size))
+# dataset_folder = './../data/Quora'
+# shuffle_dataset = True
+# batch_size = 1
+#
+# quora = QuoraDataset(dataset_folder)
+# quora.init_dataset(shuffle_dataset, 'trigrams_sanitized')
+# print(quora.get_vocabulary_size())
+# print(quora.get_next_batch(batch_size))

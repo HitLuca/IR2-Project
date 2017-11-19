@@ -1,10 +1,11 @@
-from .lib.models.SDQA import SDQA
-from .lib.utils.losses import cosine_sim_loss
-
 import tensorflow as tf
 
+from code.reproduction.lib.data.quora_utils import QuoraDataset
 
 # define the parameters
+from code.reproduction.lib.models.SDQA import SDQA
+from code.reproduction.lib.utils import cosine_sim_loss
+
 batch_size = 128
 learning_rate = 0.001
 activation_fn = tf.nn.relu
@@ -14,7 +15,6 @@ restore = False
 checkpoint_path = './ckpt/'
 checkpoint_prefix = 'ckpt_sdqa'
 
-
 ##########################
 ##########################
 '''
@@ -23,25 +23,28 @@ NEED TO LOAD THE DATA
 ##########################
 ##########################
 
+dataset_folder = './../data/Quora'
+shuffle_dataset = True
+batch_size = 1
+
+quora = QuoraDataset(dataset_folder)
+quora.init_dataset(shuffle_dataset, 'trigrams_sanitized')
+vocabulary_size = quora.get_vocabulary_size()
+
 # initialize the network
-nn = SDQA(activation_fn=activation_fn, is_training=True)
+nn = SDQA(activation_fn=activation_fn, is_training=True, input_shape=vocabulary_size)
 
-# features for 2 diff inputs
-# TODO: Better way to define the shape
-features1 = tf.placeholder(dtype=tf.float32, shape=[1, 48536])
-features2 = tf.placeholder(dtype=tf.float32, shape=[1, 48536])
-
-# logits for 2 diff inputs
-logit1 = nn.define_network(features1)
-logit2 = nn.define_network(features2)
-
-# calculate loss
-# TODO: get the labels
+input1 = nn.input1
+input2 = nn.input2
 labels = tf.placeholder(dtype=tf.float32, shape=[batch_size])
 
-loss = cosine_sim_loss(logit1, logit2, labels, m=1)
+logits1 = nn.logits1
+logits2 = nn.logits2
 
-optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(loss)
+inference = nn.inference()
+loss = nn.loss(labels)
+train_step = nn.train_step(loss)
+# accuracy = nn.accuracy() #TODO: check what to use here
 
 global_step = tf.Variable(0, name='global_step', trainable=False)
 saver = tf.train.Saver(max_to_keep=2)
@@ -49,8 +52,6 @@ saver = tf.train.Saver(max_to_keep=2)
 with tf.Session() as sess:
     sess.run(tf.global_variables_initializer())
     sess.run(tf.local_variables_initializer())
-    # sess.run(tf.tables_initializer())
-    # sess.run(iterator.initializer)
 
     coord = tf.train.Coordinator()
     threads = tf.train.start_queue_runners(sess=sess, coord=coord)
@@ -66,7 +67,7 @@ with tf.Session() as sess:
 
     for i in range(100000):
         print("--- iteration " + str(i + 1 + last_global_step) + " ---")
-
+        batch = quora.get_next_batch(batch_size)
         # result = sess.run([], feed_dict={})
 
         if i % 500 == 0:
