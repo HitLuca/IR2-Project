@@ -5,6 +5,7 @@ assignment1/models/
 *.pyc
 
 code/data/Quora/
+code/data/Yahoo/
 checkpoint
 *.index
 *.meta
