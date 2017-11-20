@@ -18,6 +18,7 @@ checkpoint_prefix = 'ckpt_sdqa'
 dataset_folder = './../data/Quora'
 shuffle_dataset = True
 batch_size = 20
+acc_threshold = 0.7     # TODO: This has to be verified
 
 quora = QuoraDataset(dataset_folder)
 quora.init_dataset(shuffle_dataset, 'trigrams_sanitized')
@@ -34,9 +35,9 @@ logits1 = nn.logits1
 logits2 = nn.logits2
 
 inference = nn.inference()
-loss = nn.loss(labels)
-# train_step = nn.train_step(loss)
-# accuracy = nn.accuracy() #TODO: check what to use here
+loss, cosine_dist = nn.loss(labels)
+train_step = nn.train_step(loss)
+accuracy = nn.accuracy(labels, cosine_dist, acc_threshold)  # TODO: check what to use here
 
 
 def sparse2dense(batch):
@@ -71,6 +72,6 @@ with tf.Session() as sess:
 
         ids, qid1, qid2, q1_vec, q2_vec, y = sparse2dense(batch)
 
-        result = sess.run([logits1, logits2, inference, loss],
+        result = sess.run([logits1, logits2, inference, loss, accuracy],
                           feed_dict={input1: q1_vec, input2: q2_vec, labels: y})
         print(result[0].shape)

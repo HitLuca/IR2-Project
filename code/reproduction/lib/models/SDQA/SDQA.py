@@ -50,17 +50,17 @@ class SDQA:
         # TODO: Check if dim0 or dim1????
         return tf.losses.cosine_distance(self.logits1, self.logits2, dim=1)
 
-    def loss(self, label, margin=1):
+    def loss(self, label, margin=1.0):
 
-        # cosine_dist = tf.losses.cosine_distance(self.logits1, self.logits2, dim=0)
-        #
-        # true_mask = tf.cast(tf.equal(label, tf.ones(shape=tf.shape(label))), tf.float32)
-        # false_mask = 1 - true_mask
-        #
-        # loss = true_mask * (1 - cosine_dist) + false_mask * (tf.maximum(0, cosine_dist - margin))
+        true_mask = tf.cast(tf.equal(label, tf.ones(shape=tf.shape(label))), tf.float32)
+        false_mask = 1.0 - true_mask
 
-        # return tf.reduce_sum(loss)
-        return tf.reduce_sum(label)
+        cosine_dist = tf.map_fn(lambda x: tf.losses.cosine_distance(x[0], x[1], dim=0),
+                                (self.logits1, self.logits2), dtype=tf.float32)
+
+        loss = true_mask * (1.0 - cosine_dist) + false_mask * (tf.maximum(0.0, cosine_dist - margin))
+
+        return tf.reduce_sum(loss), cosine_dist
 
     def train_step(self, loss):
         return tf.train.AdamOptimizer(learning_rate=self.learning_rate).minimize(loss)
