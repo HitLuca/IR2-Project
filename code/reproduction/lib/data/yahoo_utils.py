@@ -7,17 +7,29 @@ pd.options.mode.chained_assignment = None
 
 
 class YahooDataset:
-    def __init__(self):
-        self.dataset_filepath = './../../../data/Yahoo/part_1.p'
-        self.vocabulary_filepath = './../../../data/Yahoo/vocabulary.p'
+    def __init__(self, dataset_folder):
+        self.dataset_folder = dataset_folder + '/'
+        self.dataset_filepath = self.dataset_folder + 'part_1.p'
+        self.vocabulary_filepath = self.dataset_folder + 'vocabulary.p'
         self.df = None
+        self.vocabulary = None
         self.batch_index = 0
 
     def init_dataset(self, shuffle):
         self.load_dataset()
-        self.df = self.df.T.to_dict().values()
+        self.load_dictionary()
+        self.df = list(self.df.T.to_dict().values())
         if shuffle:
             random.shuffle(self.df)
+
+    def load_dictionary(self):
+        self.vocabulary = self.load_from_binary(self.vocabulary_filepath)
+
+    def get_vocabulary_size(self):
+        if self.vocabulary is not None:
+            return len(self.vocabulary)
+        else:
+            return NotImplementedError
 
     def get_next_batch(self, batch_size):
         self.batch_index += batch_size
@@ -78,6 +90,11 @@ class YahooDataset:
         with open(filepath, 'wb') as f:
             pickle.dump(data, f, pickle.HIGHEST_PROTOCOL)
 
+    @staticmethod
+    def load_from_binary(filepath):
+        with open(filepath, 'rb') as f:
+            return pickle.load(f)
+
     def _extract_trigrams(self, string, trigrams_vocabulary, sort_idx):
         trigrams = np.unique([string[j:j + 3] for j in range(len(string) - 2)])
         if len(trigrams) == 0:
@@ -87,3 +104,11 @@ class YahooDataset:
         return np.unique(sort_idx[np.searchsorted(trigrams_vocabulary, trigrams, sorter=sort_idx)])
 
 
+dataset_folder = './../../../data/Yahoo'
+shuffle_dataset = True
+batch_size = 1
+
+yahoo = YahooDataset(dataset_folder)
+yahoo.init_dataset(shuffle_dataset)
+print(yahoo.get_vocabulary_size())
+print(yahoo.get_next_batch(batch_size))
