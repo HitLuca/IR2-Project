@@ -3,7 +3,7 @@ import tensorflow as tf
 
 class SDQA:
     def __init__(self, is_training, input_shape, activation_fn=tf.nn.relu,
-                 num_filter=8, num_hidden_fc=128, dropout=0.5, kernel_size=10,
+                 num_filter=6, num_hidden_fc=128, dropout=0.5, kernel_size=10,
                  learning_rate=0.01, batch_size=128):
 
         self.activation_fn = activation_fn
@@ -50,12 +50,20 @@ class SDQA:
         # TODO: Check if dim0 or dim1????
         return tf.losses.cosine_distance(self.logits1, self.logits2, dim=1)
 
+    @staticmethod
+    def find_cosine_dist(x1, x2):
+        normalized_x1 = tf.nn.l2_normalize(x1, dim=0)
+        normalized_x2 = tf.nn.l2_normalize(x2, dim=0)
+        return tf.losses.cosine_distance(normalized_x1, normalized_x2, dim=0)
+
     def loss(self, label, margin=1.0):
 
+        # for those y = 1
         true_mask = tf.cast(tf.equal(label, tf.ones(shape=tf.shape(label))), tf.float32)
+        # for those y = -1
         false_mask = 1.0 - true_mask
 
-        cosine_dist = tf.map_fn(lambda x: tf.losses.cosine_distance(x[0], x[1], dim=0),
+        cosine_dist = tf.map_fn(lambda x: self.find_cosine_dist(x[0], x[1]),
                                 (self.logits1, self.logits2), dtype=tf.float32)
 
         loss = true_mask * (1.0 - cosine_dist) + false_mask * (tf.maximum(0.0, cosine_dist - margin))
@@ -65,7 +73,8 @@ class SDQA:
     def train_step(self, loss):
         return tf.train.AdamOptimizer(learning_rate=self.learning_rate).minimize(loss)
 
-    def accuracy(self, label, cosine_dist, threshold):
+    @staticmethod
+    def accuracy(label, cosine_dist, threshold):
 
         related_pred = tf.cast(tf.greater_equal(cosine_dist, threshold), dtype=tf.float32)
         related_label = tf.cast(tf.equal(label, 1.0), dtype=tf.float32)
