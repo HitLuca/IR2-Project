@@ -2,13 +2,11 @@ import tensorflow as tf
 import numpy as np
 import time
 
-from code.reproduction.lib.data.quora_utils import QuoraDataset
+from .lib.data.quora_utils import QuoraDataset
 
 # define the parameters
-from code.reproduction.lib.models.SDQA import SDQA
-from code.reproduction.lib.utils import cosine_sim_loss
+from .lib.models.SDQA import SDQA
 
-restore = False
 
 # TODO: To be defined
 checkpoint_path = './ckpt/'
@@ -17,15 +15,18 @@ checkpoint_prefix = 'ckpt_sdqa'
 
 dataset_folder = './../data/Quora'
 shuffle_dataset = True
-batch_size = 20
+batch_size = 8
 acc_threshold = 0.7     # TODO: This has to be verified
+loss_margin = 0.5
 
 quora = QuoraDataset(dataset_folder)
 quora.init_dataset(shuffle_dataset, 'trigrams_sanitized')
 vocabulary_size = quora.get_vocabulary_size()
 
+is_training = tf.placeholder(tf.bool, shape=())
+
 # initialize the network
-nn = SDQA(is_training=True, input_shape=vocabulary_size)
+nn = SDQA(is_training=is_training, input_shape=vocabulary_size)
 
 input1 = nn.input1
 input2 = nn.input2
@@ -35,7 +36,7 @@ logits1 = nn.logits1
 logits2 = nn.logits2
 
 inference = nn.inference()
-loss, cosine_dist = nn.loss(labels)
+loss, cosine_dist = nn.loss(label=labels, margin=loss_margin)
 train_step = nn.train_step(loss)
 accuracy = nn.accuracy(labels, cosine_dist, acc_threshold)  # TODO: check what to use here
 
@@ -66,12 +67,15 @@ with tf.Session() as sess:
     sess.run(tf.global_variables_initializer())
     sess.run(tf.local_variables_initializer())
 
-    for i in range(1):
-        print("--- iteration " + str(i) + " ---")
+    for i in range(10000):
         batch = quora.get_next_batch(batch_size)
 
         ids, qid1, qid2, q1_vec, q2_vec, y = sparse2dense(batch)
 
-        result = sess.run([logits1, logits2, inference, loss, accuracy],
-                          feed_dict={input1: q1_vec, input2: q2_vec, labels: y})
-        print(result[0].shape)
+        result = sess.run([logits1, logits2, inference, loss, accuracy, train_step],
+                          feed_dict={input1: q1_vec,
+                                     input2: q2_vec,
+                                     labels: y,
+                                     is_training: True})
+
+        print("step: %3d, loss: %2.3f, acc: %2.3f" % (i, result[3], result[4]))
