@@ -2,11 +2,10 @@ import tensorflow as tf
 import numpy as np
 import time
 
-from code.reproduction.lib.data.quora_utils import QuoraDataset
+from .lib.data.quora_utils import QuoraDataset
 
 # define the parameters
-from code.reproduction.lib.models.SDQA import SDQA
-from code.reproduction.lib.utils import cosine_sim_loss
+from .lib.models.SDQA import SDQA
 
 
 # TODO: To be defined
@@ -18,6 +17,7 @@ dataset_folder = './../data/Quora'
 shuffle_dataset = True
 batch_size = 8
 acc_threshold = 0.7     # TODO: This has to be verified
+loss_margin = 0.5
 
 quora = QuoraDataset(dataset_folder)
 quora.init_dataset(shuffle_dataset, 'trigrams_sanitized')
@@ -36,7 +36,7 @@ logits1 = nn.logits1
 logits2 = nn.logits2
 
 inference = nn.inference()
-loss, cosine_dist = nn.loss(labels)
+loss, cosine_dist = nn.loss(label=labels, margin=loss_margin)
 train_step = nn.train_step(loss)
 accuracy = nn.accuracy(labels, cosine_dist, acc_threshold)  # TODO: check what to use here
 

@@ -20,16 +20,19 @@ class SDQA:
         self.input1 = tf.placeholder(tf.float32, shape=[None, input_shape, 1])
         self.input2 = tf.placeholder(tf.float32, shape=[None, input_shape, 1])
 
-        with tf.variable_scope("SiameseNet", reuse=tf.AUTO_REUSE) as scope:
-            self.logits1 = self._define_network(self.input1)
-            self.logits2 = self._define_network(self.input2)
-
-        # with tf.variable_scope("SiameseNet", reuse=False):
+        # with tf.variable_scope("SiameseNet", reuse=tf.AUTO_REUSE) as scope:
         #     self.logits1 = self._define_network(self.input1)
-        # with tf.variable_scope("SiameseNet", reuse=True):
         #     self.logits2 = self._define_network(self.input2)
 
+        with tf.variable_scope("SiameseNet", reuse=False):
+            self.logits1 = self._define_network(self.input1)
+        with tf.variable_scope("SiameseNet", reuse=True):
+            self.logits2 = self._define_network(self.input2)
+
     def _define_network(self, features):
+        # with tf.variable_scope(None, default_name="PreFC") as scope:
+        #     pre_fc = tf.layers.dense(inputs=features, units=128)
+
         with tf.variable_scope(None, default_name="Conv1") as scope:
             conv1 = tf.layers.conv1d(
                 inputs=features,
@@ -47,8 +50,8 @@ class SDQA:
         return logits
 
     def inference(self):
-        # TODO: Check if dim0 or dim1????
-        return tf.losses.cosine_distance(self.logits1, self.logits2, dim=1)
+        return tf.map_fn(lambda x: self.find_cosine_dist(x[0], x[1]),
+                         (self.logits1, self.logits2), dtype=tf.float32)
 
     @staticmethod
     def find_cosine_dist(x1, x2):
