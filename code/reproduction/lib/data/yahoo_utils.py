@@ -194,20 +194,20 @@ class YahooDataset:
     def _save_pandas(data, filepath):
         data.to_pickle(filepath)
 
-
-dataset_filenames = [
-                     'yahoo_df_subject+content.p',
-                     'yahoo_df_subject.p',
-                     'yahoo_df_subject_no_content.p'
-                    ]
-
-dataset_folder = './../../../data/Yahoo'
-dataset_filename = dataset_filenames[1]
-
-shuffle_dataset = False
-batch_size = 20
-
-yahoo = YahooDataset(dataset_folder, dataset_filename)
-yahoo.init_dataset(shuffle_dataset)
-print('vocabulary size:', yahoo.get_vocabulary_size())
-print(yahoo.get_next_batch(batch_size))
+#
+# dataset_filenames = [
+#                      'yahoo_df_subject+content.p',
+#                      'yahoo_df_subject.p',
+#                      'yahoo_df_subject_no_content.p'
+#                     ]
+#
+# dataset_folder = './../../../data/Yahoo'
+# dataset_filename = dataset_filenames[1]
+#
+# shuffle_dataset = False
+# batch_size = 20
+#
+# yahoo = YahooDataset(dataset_folder, dataset_filename)
+# yahoo.init_dataset(shuffle_dataset)
+# print('vocabulary size:', yahoo.get_vocabulary_size())
+# print(yahoo.get_next_batch(batch_size))

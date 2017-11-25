@@ -3,13 +3,12 @@ import tensorflow as tf
 
 class SDQA:
     def __init__(self, is_training, input_shape, activation_fn=tf.nn.relu,
-                 num_filter=6, num_hidden_fc=128, dropout=0.5, kernel_size=10,
-                 learning_rate=0.01, batch_size=128):
+                 num_filter=64, num_hidden_fc=128, dropout=0.5, kernel_size=10,
+                 learning_rate=0.01):
 
         self.activation_fn = activation_fn
         self.is_training = is_training
         self.learning_rate = learning_rate
-        self.batch_size = batch_size
 
         self.num_filter = num_filter
         self.num_hidden_fc = num_hidden_fc
@@ -40,11 +39,31 @@ class SDQA:
                 kernel_size=self.kernel_size,
                 activation=self.activation_fn
             )
-            conv1 = tf.layers.max_pooling1d(inputs=conv1, pool_size=100, strides=1)
+            conv1 = tf.layers.max_pooling1d(inputs=conv1, pool_size=100, strides=5)
             conv1 = tf.layers.dropout(conv1, rate=self.dropout, training=self.is_training)
 
+        with tf.variable_scope(None, default_name="Conv2") as scope:
+            conv2 = tf.layers.conv1d(
+                inputs=conv1,
+                filters=self.num_filter,
+                kernel_size=self.kernel_size,
+                activation=self.activation_fn
+            )
+            conv2 = tf.layers.max_pooling1d(inputs=conv2, pool_size=100, strides=5)
+            conv2 = tf.layers.dropout(conv2, rate=self.dropout, training=self.is_training)
+
+        with tf.variable_scope(None, default_name="Conv3") as scope:
+            conv3 = tf.layers.conv1d(
+                inputs=conv2,
+                filters=self.num_filter,
+                kernel_size=self.kernel_size,
+                activation=self.activation_fn
+            )
+            conv3 = tf.layers.max_pooling1d(inputs=conv3, pool_size=100, strides=5)
+            conv3 = tf.layers.dropout(conv3, rate=self.dropout, training=self.is_training)
+
         with tf.variable_scope(None, default_name="Final_FC_Layers") as scope:
-            flattened = tf.contrib.layers.flatten(conv1)
+            flattened = tf.contrib.layers.flatten(conv3)
             logits = tf.layers.dense(inputs=flattened, units=self.num_hidden_fc)
 
         return logits
