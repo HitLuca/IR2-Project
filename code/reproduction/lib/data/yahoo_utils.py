@@ -20,21 +20,34 @@ class YahooDataset:
         self.batch_index = 0
         self.batch_indexes = None
 
+
+        '''
+        init:
+        1. unpickle the pickle named self.dataset_filepath
+        2. load the pickle
+        3. get or make the trigrams
+
+        '''
+        #1
         print('loading_dataset...')
         self._load_dataset()
         print('loaded')
-
+        #2
         if self._vocabulary_exists():
             print('loading vocabulary...')
             self._load_vocabulary()
             print('loaded')
-        else:
+        else: #3
             if not self._check_for_trigrams():
                 print('no trigrams in the dataset!')
-
                 print('generating trigrams...')
                 self._add_trigrams_to_dataset()
                 print('generated')
+
+        print(np.shape(self.df))
+        # negative_indexes = [random.choice(list(range(N)).remove(i) for i in range(N)]
+
+        
 
     def init_dataset(self, shuffle):
         self.batch_indexes = np.arange(len(self.df.index))
@@ -46,7 +59,10 @@ class YahooDataset:
     def get_next_batch(self, batch_size):
         self.batch_index += batch_size
         selected_data = self.df.iloc[self.batch_indexes[self.batch_index - batch_size:self.batch_index], :]
-        return self._convert_pandas_to_list(selected_data)
+        sample_indexes = np.random.randint(0, len(self.df), size=batch_size)
+        negative_samples = self.df.ix[sample_indexes]
+
+        return self._convert_pandas_to_list(selected_data), self._convert_pandas_to_list(negative_samples)
 
     def get_vocabulary_size(self):
         if self.vocabulary is not None:
@@ -65,6 +81,7 @@ class YahooDataset:
 
     def _load_dataset(self):
         self.df = pd.read_pickle(self.dataset_filepath)
+
 
     def _load_vocabulary(self):
         self.vocabulary = np.array(self._load_from_binary(self.vocabulary_filepath))
@@ -149,6 +166,11 @@ class YahooDataset:
 
         return np.unique(sort_idx[np.searchsorted(trigrams_vocabulary, trigrams, sorter=sort_idx)])
 
+    def _sample_negative_examples():
+        print('hoi')
+        [np.random.choice(np.delete(np.arange(N), i)) for i in range(N)]
+
+
     @staticmethod
     def _convert_pandas_to_list(data):
         return list(data.T.to_dict().values())
@@ -161,20 +183,22 @@ class YahooDataset:
     @staticmethod
     def _load_from_binary(filepath):
         with open(filepath, 'rb') as f:
-            return pickle.load(f)
+            p = pickle.load(f)
+            return p
 
     @staticmethod
     def _save_pandas(data, filepath):
         data.to_pickle(filepath)
 
 
-dataset_filenames = ['part_1.p',
+dataset_filenames = [
                      'yahoo_df_subject+content.p',
                      'yahoo_df_subject.p',
-                     'yahoo_df_subject_no_content.p']
+                     'yahoo_df_subject_no_content.p'
+                    ]
 
 dataset_folder = './../../../data/Yahoo'
-dataset_filename = dataset_filenames[0]
+dataset_filename = dataset_filenames[1]
 
 shuffle_dataset = False
 batch_size = 1
