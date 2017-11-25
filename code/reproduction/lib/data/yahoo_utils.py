@@ -57,12 +57,16 @@ class YahooDataset:
             print('shuffled')
 
     def get_next_batch(self, batch_size):
+        batch_size = int(batch_size*0.5)
         self.batch_index += batch_size
         selected_data = self.df.iloc[self.batch_indexes[self.batch_index - batch_size:self.batch_index], :]
-        sample_indexes = np.random.randint(0, len(self.df), size=batch_size)
-        negative_samples = self.df.ix[sample_indexes]
-
-        return self._convert_pandas_to_list(selected_data), self._convert_pandas_to_list(negative_samples)
+        # selected_data = self.df.ix[self.batch_indexes]
+        selected_data['relevance'] = 1.0
+        negative_samples = self.df.sample(n=batch_size)
+        negative_samples['relevance'] = 0.0
+        sample = pd.concat([selected_data, negative_samples], ignore_index=True)
+        sample = sample.reindex(np.random.permutation(sample.index))
+        return self._convert_pandas_to_list(sample)
 
     def get_vocabulary_size(self):
         if self.vocabulary is not None:
@@ -201,7 +205,7 @@ dataset_folder = './../../../data/Yahoo'
 dataset_filename = dataset_filenames[1]
 
 shuffle_dataset = False
-batch_size = 1
+batch_size = 20
 
 yahoo = YahooDataset(dataset_folder, dataset_filename)
 yahoo.init_dataset(shuffle_dataset)
