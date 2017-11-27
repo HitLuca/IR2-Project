@@ -3,7 +3,7 @@ import tensorflow as tf
 
 class SDQA:
     def __init__(self, is_training, input_shape, activation_fn=tf.nn.relu,
-                 num_filter=64, num_hidden_fc=128, dropout=0.5, kernel_size=10,
+                 num_filter=32, num_hidden_fc=128, dropout=0.5, kernel_size=10,
                  learning_rate=0.01):
 
         self.activation_fn = activation_fn
@@ -39,7 +39,7 @@ class SDQA:
                 kernel_size=self.kernel_size,
                 activation=self.activation_fn
             )
-            conv1 = tf.layers.max_pooling1d(inputs=conv1, pool_size=100, strides=5)
+            conv1 = tf.layers.max_pooling1d(inputs=conv1, pool_size=100, strides=10)
             conv1 = tf.layers.dropout(conv1, rate=self.dropout, training=self.is_training)
 
         with tf.variable_scope(None, default_name="Conv2") as scope:

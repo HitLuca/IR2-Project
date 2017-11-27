@@ -66,7 +66,8 @@ class YahooDataset:
         negative_samples['relevance'] = 0.0
         sample = pd.concat([selected_data, negative_samples], ignore_index=True)
         sample = sample.reindex(np.random.permutation(sample.index))
-        return self._convert_pandas_to_list(sample)
+        # TODO: Temporary solution to avoid NaNs
+        return self._convert_pandas_to_list(sample.dropna())
 
     def get_vocabulary_size(self):
         if self.vocabulary is not None:

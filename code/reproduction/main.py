@@ -37,7 +37,7 @@ nn = SDQA(is_training=is_training, input_shape=vocabulary_size)
 
 input1 = nn.input1
 input2 = nn.input2
-labels = tf.placeholder(dtype=tf.float32, shape=[batch_size, 1])
+labels = tf.placeholder(dtype=tf.float32, shape=[None, 1])
 
 logits1 = nn.logits1
 logits2 = nn.logits2
@@ -79,16 +79,17 @@ with tf.Session() as sess:
     sess.run(tf.global_variables_initializer())
     sess.run(tf.local_variables_initializer())
 
-    for i in range(1):
+    for i in range(1000):
         batch = yahoo.get_next_batch(batch_size)
 
         # ids, qid1, qid2, q1_vec, q2_vec, y = sparse2dense(batch)
         q1_vec, q2_vec, y = sparse2dense(batch)
 
-        result = sess.run([logits1, logits2, inference, loss, accuracy, train_step],
+        result = sess.run([logits1, logits2, inference, loss, accuracy, train_step, cosine_dist],
                           feed_dict={input1: q1_vec,
                                      input2: q2_vec,
                                      labels: y,
                                      is_training: True})
 
         print("step: %3d, loss: %2.3f, acc: %2.3f" % (i, result[3], result[4]))
+        print(result[6])
