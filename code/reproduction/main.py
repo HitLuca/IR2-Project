@@ -3,37 +3,44 @@ import numpy as np
 import time
 
 # from lib.data.quora_utils import QuoraDataset
-from lib.data.yahoo_utils import YahooDataset
+# from lib.data.yahoo_utils import YahooDataset
 
-# define the parameters
+# import the data
 from lib.models.SDQA import SDQA
+import os
+import sys
+
+
+# os.path.abspath(data_dir)
+# from ..code.data.batch_creation import Dataset
+
+import sys
+sys.path.insert(0, '/Users/murielhol/IR2/ir2/code/data/batch_creation/')
+
+from Dataset import Dataset
+
+# print(data_dir)
+# bah
+
 
 
 # TODO: To be defined
 checkpoint_path = './ckpt/'
 checkpoint_prefix = 'ckpt_sdqa'
 
-
-dataset_folder = './../data/Yahoo'
+dataset_folder = './../data/batch_creation'
 dataset_filename = 'yahoo_df_subject+content.p'
 shuffle_dataset = True
 batch_size = 32
 acc_threshold = 0.7     # TODO: This has to be verified
 loss_margin = 0.5
 
-# loading data
-# quora = QuoraDataset(dataset_folder)
-# quora.init_dataset(shuffle_dataset, 'trigrams_sanitized')
-# vocabulary_size = quora.get_vocabulary_size()
-
-yahoo = YahooDataset(dataset_folder, dataset_filename)
-yahoo.init_dataset(shuffle_dataset)
-vocabulary_size = yahoo.get_vocabulary_size()
 
 is_training = tf.placeholder(tf.bool, shape=())
 
 # initialize the network
-nn = SDQA(is_training=is_training, input_shape=vocabulary_size)
+data = Dataset(batch_size, 'dummy.p', data_dir = dataset_folder)
+nn = SDQA(is_training=is_training, input_shape=data.vocabulary_size)
 
 input1 = nn.input1
 input2 = nn.input2
@@ -76,14 +83,12 @@ def sparse2dense(batch):
 
 
 with tf.Session() as sess:
+    Q, A, y = None, None, None
     sess.run(tf.global_variables_initializer())
     sess.run(tf.local_variables_initializer())
 
-    for i in range(1000):
-        batch = yahoo.get_next_batch(batch_size)
-
-        # ids, qid1, qid2, q1_vec, q2_vec, y = sparse2dense(batch)
-        q1_vec, q2_vec, y = sparse2dense(batch)
+    for i in range(10):
+        q1_vec, q2_vec, y = data.next_batch(is_one_hot_encoding=True)
 
         result = sess.run([logits1, logits2, inference, loss, accuracy, train_step, cosine_dist],
                           feed_dict={input1: q1_vec,
