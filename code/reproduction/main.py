@@ -45,8 +45,8 @@ labels = tf.placeholder(dtype=tf.float32, shape=[None, 1])
 logits1 = nn.logits1
 logits2 = nn.logits2
 
-inference = nn.inference()
-loss, cosine_dist = nn.loss(label=labels, margin=loss_margin)
+# inference = nn.inference()
+loss, cosine_dist, cosine_dist_new = nn.loss(label=labels, margin=loss_margin)
 train_step = nn.train_step(loss)
 accuracy = nn.accuracy(labels, cosine_dist, acc_threshold)  # TODO: check what to use here
 
@@ -83,14 +83,18 @@ with tf.Session() as sess:
     sess.run(tf.global_variables_initializer())
     sess.run(tf.local_variables_initializer())
 
-    for i in range(10):
+    for i in range(1000):
         q1_vec, q2_vec, y = data.next_batch(is_one_hot_encoding=True)
+        q1_vec = np.expand_dims(q1_vec, 2)
+        q2_vec = np.expand_dims(q2_vec, 2)
+        y = np.expand_dims(y, 1)
 
-        result = sess.run([logits1, logits2, inference, loss, accuracy, train_step, cosine_dist],
+        result = sess.run([logits1, logits2, loss, accuracy, train_step, cosine_dist, cosine_dist_new],
                           feed_dict={input1: q1_vec,
                                      input2: q2_vec,
                                      labels: y,
                                      is_training: True})
 
-        print("step: %3d, loss: %2.3f, acc: %2.3f" % (i, result[3], result[4]))
-        print(result[6])
+        if i %100 == 0:
+        # print("step: %3d, loss: %2.3f, acc: %2.3f" % (i, result[3], result[4]))
+            print(result[5], '\n', result[6] , '\n', "---------------------------")
