@@ -19,10 +19,6 @@ sys.path.insert(0, '/Users/murielhol/IR2/ir2/code/data/batch_creation/')
 
 from Dataset import Dataset
 
-# print(data_dir)
-# bah
-
-
 
 # TODO: To be defined
 checkpoint_path = './ckpt/'
@@ -55,31 +51,31 @@ train_step = nn.train_step(loss)
 accuracy = nn.accuracy(labels, cosine_dist, acc_threshold)  # TODO: check what to use here
 
 
-# TODO: Move this function to utils
-def sparse2dense(batch):
-    labels = np.array([sample['relevance'] for sample in batch])
-
-    # TODO: IDs not required for yahoo dataset
-    # qid1 = np.array([sample['qid1'] for sample in batch])
-    # qid2 = np.array([sample['qid2'] for sample in batch])
-    # ids = np.array([sample['id'] for sample in batch])
-
-    # turn them to sparse representation
-    q1_vec = np.zeros(shape=[batch_size, vocabulary_size])
-    q2_vec = np.zeros(shape=[batch_size, vocabulary_size])
-
-    # TODO: Make keys more generic
-    for i, sample in enumerate(batch):
-        q1_vec[i, sample['tri_subject']] = 1
-    for i, sample in enumerate(batch):
-        q2_vec[i, sample['tri_bestanswer']] = 1
-
-    q1_vec = np.expand_dims(q1_vec, axis=2)
-    q2_vec = np.expand_dims(q2_vec, axis=2)
-    labels = np.expand_dims(labels, axis=1)
-
-    # return ids, qid1, qid2, q1_vec, q2_vec, labels
-    return q1_vec, q2_vec, labels
+# # TODO: Move this function to utils
+# def sparse2dense(batch):
+#     labels = np.array([sample['relevance'] for sample in batch])
+#
+#     # TODO: IDs not required for yahoo dataset
+#     # qid1 = np.array([sample['qid1'] for sample in batch])
+#     # qid2 = np.array([sample['qid2'] for sample in batch])
+#     # ids = np.array([sample['id'] for sample in batch])
+#
+#     # turn them to sparse representation
+#     q1_vec = np.zeros(shape=[batch_size, data.vocabulary_size])
+#     q2_vec = np.zeros(shape=[batch_size, data.vocabulary_size])
+#
+#     # TODO: Make keys more generic
+#     for i, sample in enumerate(batch):
+#         q1_vec[i, sample['tri_subject']] = 1
+#     for i, sample in enumerate(batch):
+#         q2_vec[i, sample['tri_bestanswer']] = 1
+#
+#     q1_vec = np.expand_dims(q1_vec, axis=2)
+#     q2_vec = np.expand_dims(q2_vec, axis=2)
+#     labels = np.expand_dims(labels, axis=1)
+#
+#     # return ids, qid1, qid2, q1_vec, q2_vec, labels
+#     return q1_vec, q2_vec, labels
 
 
 with tf.Session() as sess:
