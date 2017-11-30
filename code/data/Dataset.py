@@ -4,10 +4,12 @@ import pandas as pd
 import numpy as np
 import pickle
 import os
+
 np.random.seed(42)
 
+
 class Dataset(object):
-    def __init__(self, batch_size, f_name, data_dir = ''):
+    def __init__(self, batch_size, f_name, data_dir=''):
         f_name = os.path.join(data_dir, f_name)
         self.batch_size = batch_size
         self.total_steps = 0
@@ -18,13 +20,13 @@ class Dataset(object):
         self.init_data(f_name)
         self.dataset_size = len(self.subject_encoded)
         self.indices_neg = np.random.permutation(self.dataset_size)
-        self.vocabulary = pickle.load(open(os.path.join(data_dir,'vocab_dict.p'), 'rb'))
+        self.vocabulary = pickle.load(open(os.path.join(data_dir, 'vocab_dict.p'), 'rb'))
         self.vocabulary_size = len(self.vocabulary)
 
     def init_data(self, f_name):
         df = None
         if 'minimal_sparse' in f_name:
-            f_names = glob.glob(f_name+'*.p')
+            f_names = glob.glob(f_name + '*.p')
             df = pd.concat([pd.read_pickle(f_name) for f_name in f_names], ignore_index=True)
         else:
             df = pd.read_pickle(f_name)
