@@ -1,14 +1,13 @@
 #region imports
-import tensorflow as tf
-import numpy as np
 import os
 import sys
+path = os.path.dirname(os.path.dirname(os.path.abspath(sys.modules['__main__'].__file__))) + '/data/'
+sys.path.append(path)  # to correctly import Dataset
 
-path = os.path.dirname(os.path.dirname(sys.modules['__main__'].__file__)) + '/data/batch_creation/'
-sys.path.insert(0, path)# to correctly import Dataset
-
-from Dataset import Dataset
-from lib.models.SDQA.SDQA import SDQA
+import tensorflow as tf
+import numpy as np
+from dataset import Dataset
+from lib.models.SDQA import SDQA
 #endregion
 
 checkpoint_path = './ckpt/'
@@ -28,12 +27,12 @@ data = Dataset(batch_size,
 
 # initialize the network
 is_training = tf.placeholder(tf.bool)
-nn = SDQA(is_training=is_training,
-          vocabulary_size=data.vocabulary_size)
-
 input1 = tf.placeholder(dtype=tf.float32, shape=[None, data.vocabulary_size])
 input2 = tf.placeholder(dtype=tf.float32, shape=[None, data.vocabulary_size])
 labels = tf.placeholder(dtype=tf.float32, shape=[None])
+
+nn = SDQA(is_training=is_training,
+          vocabulary_size=data.vocabulary_size)
 
 cosine_similarity = nn.inference(input1, input2)
 loss = nn.loss(labels, cosine_similarity, margin=loss_margin)

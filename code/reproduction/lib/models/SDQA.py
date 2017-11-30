@@ -1,5 +1,4 @@
 import tensorflow as tf
-from scipy.constants.codata import unit
 
 
 class SDQA:
