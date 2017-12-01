@@ -15,9 +15,9 @@ vocabulary_filepath = './lib/data/vocabulary.txt'
 embeddings_filepath = './lib/data/partial_embedding_matrix.npy'
 
 batch_size = 64
-learning_rate = 0.001
+learning_rate = 0.0001
 max_steps = 10000
-lstm_num_layers = 2
+lstm_num_layers = 1
 lstm_num_hidden = 128
 
 data = LSTMDataset(batch_size,
@@ -26,17 +26,14 @@ data = LSTMDataset(batch_size,
 
 # initialize the network
 is_training = tf.placeholder(tf.bool)
-input1 = tf.placeholder(name='input1', dtype=tf.string, shape=[None, None])
+input1 = tf.placeholder(name='input1', dtype=tf.string, shape=[None])
 input2 = tf.placeholder(name='input2', dtype=tf.string, shape=[None])
 labels = tf.placeholder(name='labels', dtype=tf.float32, shape=[None])
-batch_length = tf.placeholder(dtype=tf.int64)
-
-embedding_matrix = tf.placeholder(tf.float32, shape=[None, None])
+batch_length = tf.placeholder(name='batch_length', dtype=tf.int32)
+embedding_matrix = tf.placeholder(name='embedding_matrix', dtype=tf.float32, shape=[None, None])
 
 nn = LSTM(is_training,
-          batch_length,
           vocabulary_filepath,
-          embeddings_filepath,
           batch_size=batch_size,
           lstm_num_layers=lstm_num_layers,
           lstm_num_hidden=lstm_num_hidden)
@@ -51,12 +48,12 @@ accuracy = nn.accuracy(labels, cosine_similarity)
 sess = tf.Session()
 sess.run(tf.global_variables_initializer())
 sess.run(tf.local_variables_initializer())
+sess.run(tf.tables_initializer())
 
 np_embedding_matrix = np.load(embeddings_filepath)
-print(np_embedding_matrix.shape)
+
 for i in range(max_steps):
     question1, question2, y = data.next_batch()
-    print(question1.shape)
     result = sess.run([loss, accuracy, train_step],
                       feed_dict={input1: question1,
                                  input2: question2,

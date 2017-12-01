@@ -3,7 +3,7 @@ import numpy as np
 
 
 class LSTM:
-    def __init__(self, is_training, batch_length, vocabulary_filepath, embeddings_filepath,
+    def __init__(self, is_training, vocabulary_filepath,
                  batch_size=64, lstm_num_layers=2, lstm_num_hidden=128,
                  num_hidden_fc=128):
         self._is_training = is_training
@@ -11,7 +11,6 @@ class LSTM:
         self._lstm_num_layers = lstm_num_layers
         self._batch_size = batch_size
         self._num_hidden_fc = num_hidden_fc
-        self._batch_length = batch_length
 
         self._load_embeddings(vocabulary_filepath)
 
@@ -30,13 +29,13 @@ class LSTM:
                          (logits1, logits2), dtype=tf.float32)
 
     def _define_network(self, inputs):
-        print(inputs)
-        dense_inputs = tf.map_fn(lambda x: self._string_to_dense(x, 300), inputs, dtype=tf.string)
+        inputs = tf.expand_dims(inputs, dim=-1)
+        tf.reduce_max(tf.size(inputs))
+        dense_inputs = tf.map_fn(lambda x: self._string_to_dense(x, 1000), inputs, dtype=tf.string)
         dense_inputs = tf.squeeze(dense_inputs, axis=1)
         padded_inputs = self.lookup_table.lookup(dense_inputs)
         embedded_inputs = tf.cast(tf.nn.embedding_lookup(self.embedding_matrix, padded_inputs), dtype=tf.float32)
         sequence_length = self._padded_length(padded_inputs, self.vocab_length - 2)
-
         stacked_lstm = tf.contrib.rnn.MultiRNNCell(
             [self._lstm_cell(self._lstm_num_hidden) for _ in range(self._lstm_num_layers)])
 
@@ -45,7 +44,6 @@ class LSTM:
                                            sequence_length=sequence_length,
                                            dtype=tf.float32)
 
-        print(outputs)
         batch_size = tf.shape(outputs)[0]
         max_length = tf.shape(outputs)[1]
         out_size = int(outputs.get_shape()[2])
@@ -86,15 +84,16 @@ class LSTM:
     @staticmethod
     def loss(labels, cosine_similarity, margin=0.3):
         true_mask = tf.cast(tf.equal(labels, tf.ones(shape=tf.shape(labels))), tf.float32)
-        loss = true_mask * (1.0 - cosine_similarity) + 5 * (1.0 - true_mask) * (
+        loss = true_mask * (1.0 - cosine_similarity) + (1.0 - true_mask) * (
             tf.maximum(0.0, cosine_similarity - margin))
         return tf.reduce_mean(loss)
 
     def _load_embeddings(self, vocabulary_filepath):
         file = open(vocabulary_filepath)
-        self.vocab_length = len(file.readlines())
+        vocabulary = list(file.readlines())
+        self.vocab_length = len(vocabulary)
         self.lookup_table = tf.contrib.lookup.index_table_from_file(vocabulary_file=vocabulary_filepath,
-                                                                    default_value=self.vocab_length + 1)
+                                                                    default_value=self.vocab_length-1)
 
     @staticmethod
     def _string_to_dense(string, length):
