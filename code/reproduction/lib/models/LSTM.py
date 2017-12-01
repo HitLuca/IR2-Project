@@ -3,17 +3,15 @@ import tensorflow as tf
 
 class LSTM:
     def __init__(self, batch_size=64, lstm_num_layers=2, lstm_num_hidden=128,
-                 num_hidden_fc=128):
+                 num_hidden_fc=128, padding_value=0):
 
         self._lstm_num_hidden = lstm_num_hidden
         self._lstm_num_layers = lstm_num_layers
         self._batch_size = batch_size
         self._num_hidden_fc = num_hidden_fc
+        self._padding_value = padding_value
 
     def inference(self, inputs1, inputs2):
-        inputs1 = tf.expand_dims(inputs1, axis=-1)
-        inputs2 = tf.expand_dims(inputs2, axis=-1)
-
         with tf.variable_scope("SiameseNet", reuse=False):
             logits1 = self._define_network(inputs1)
         with tf.variable_scope("SiameseNet", reuse=True):
@@ -22,29 +20,31 @@ class LSTM:
                          (logits1, logits2), dtype=tf.float32)
 
     def _define_network(self, inputs):
+        inputs = tf.expand_dims(inputs, axis=-1)
+
         stacked_lstm = tf.contrib.rnn.MultiRNNCell(
             [self._lstm_cell(self._lstm_num_hidden) for _ in range(self._lstm_num_layers)])
 
+        sequence_length = self._length(inputs, self._padding_value)
         outputs, state = tf.nn.dynamic_rnn(cell=stacked_lstm,
                                            inputs=inputs,
-                                           sequence_length=self.length(inputs),
+                                           sequence_length=sequence_length,
                                            dtype=tf.float32)
 
         batch_size = tf.shape(outputs)[0]
         max_length = tf.shape(outputs)[1]
         out_size = int(outputs.get_shape()[2])
-        index = tf.range(0, batch_size) * max_length + (self.length(inputs) - 1)
+        index = tf.range(0, batch_size) * max_length + (sequence_length - 1)
         flat = tf.reshape(outputs, [-1, out_size])
         relevant = tf.gather(flat, index)
         logits = tf.layers.dense(relevant, self._num_hidden_fc)
         return logits
 
     @staticmethod
-    def length(data):
-        used = tf.sign(tf.reduce_max(tf.abs(data), reduction_indices=2))
-        length = tf.reduce_sum(used, reduction_indices=1)
-        length = tf.cast(length, tf.int32)
-        return length
+    def _length(data, val):
+        tmp_indices = tf.where(tf.equal(data, val))
+        result = tf.segment_min(tmp_indices[:, 1], tmp_indices[:, 0])
+        return tf.cast(result, tf.int32)
 
     @staticmethod
     def _lstm_cell(lstm_num_hidden):
@@ -69,9 +69,8 @@ class LSTM:
 
     @staticmethod
     def loss(labels, cosine_similarity, margin=0.3):
-        # return tf.reduce_mean(tf.square(labels - cosine_similarity))
         true_mask = tf.cast(tf.equal(labels, tf.ones(shape=tf.shape(labels))), tf.float32)
-        loss = true_mask * (1.0 - cosine_similarity) + 4 * (1.0 - true_mask) * (tf.maximum(0.0, cosine_similarity - margin))
+        loss = true_mask * (1.0 - cosine_similarity) + (1.0 - true_mask) * (tf.maximum(0.0, cosine_similarity - margin))
         return tf.reduce_mean(loss)
 
     # @staticmethod

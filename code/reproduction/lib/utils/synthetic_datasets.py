@@ -20,20 +20,20 @@ class SyntheticDatasetSDQA:
 
 
 class SyntheticDatasetLSTM:
-    def generate_batch(self, batch_size, max_length):
-        timeseries1 = np.zeros((batch_size, max_length))
+    def generate_batch(self, batch_size, max_length, padding_value):
+        timeseries1 = np.ones((batch_size, max_length + 1)) * padding_value
         functions1 = []
         for i in range(batch_size):
-            timeserie, function = self._sample_function(max_length)
+            timeserie, function_id = self._sample_function(max_length)
             timeseries1[i, 0:timeserie.shape[0]] = timeserie
-            functions1.append(function)
+            functions1.append(function_id)
 
-        timeseries2 = np.zeros((batch_size, max_length))
+        timeseries2 = np.ones((batch_size, max_length + 1)) * padding_value
         functions2 = []
         for i in range(batch_size):
-            timeserie, function = self._sample_function(max_length)
+            timeserie, function_id = self._sample_function(max_length)
             timeseries2[i, 0:timeserie.shape[0]] = timeserie
-            functions2.append(function)
+            functions2.append(function_id)
 
         y = np.ones(batch_size) * -1
         for i in range(batch_size):

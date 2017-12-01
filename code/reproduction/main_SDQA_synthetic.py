@@ -1,15 +1,12 @@
-#region imports
 import tensorflow as tf
 import numpy as np
 from lib.models.SDQA import SDQA
 from lib.utils.synthetic_datasets import SyntheticDatasetSDQA
-#endregion
 
 
 batch_size = 256
 learning_rate = 0.001
 max_steps = 1000
-loss_margin = 0
 vocabulary_size = 10000
 
 # initialize the network
@@ -22,7 +19,7 @@ nn = SDQA(is_training=is_training,
           vocabulary_size=vocabulary_size)
 
 cosine_similarity = nn.inference(input1, input2)
-loss = nn.loss(labels, cosine_similarity, margin=loss_margin)
+loss = nn.loss(labels, cosine_similarity)
 train_step = nn.train_step(loss, learning_rate)
 accuracy = nn.accuracy(labels, cosine_similarity)
 
