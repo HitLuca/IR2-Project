@@ -15,7 +15,7 @@ class LSTM:
         self._load_embeddings(vocabulary_filepath)
 
         self.embedding_matrix = tf.get_variable(name='embeddings',
-                                                shape=[self.vocab_length, 300])
+                                                shape=[self.vocab_length, 300], trainable=False)
 
     def assign_embedding_matrix(self, embedding_matrix):
         self.embedding_matrix.assign(embedding_matrix)
@@ -69,11 +69,16 @@ class LSTM:
         return tf.train.AdamOptimizer(learning_rate).minimize(loss)
 
     @staticmethod
-    def accuracy(label, cosine_similarity):
-        related_pred = tf.cast(tf.greater_equal(cosine_similarity, 0), dtype=tf.float32)
-        related_label = tf.cast(tf.equal(label, 1.0), dtype=tf.float32)
+    def accuracy(label, cosine_similarity, accuracy_threshold):
+        related_pred = tf.greater_equal(cosine_similarity, accuracy_threshold)
+        related_label = tf.equal(label, 1.0)
 
-        return tf.reduce_mean(tf.cast(tf.equal(related_label, related_pred), dtype=tf.float32))
+        unrelated_pred = tf.less_equal(cosine_similarity, -accuracy_threshold)
+        unrelated_label = tf.equal(label, 0.0)
+
+        return tf.reduce_mean(tf.cast(
+            tf.logical_or(tf.logical_and(unrelated_label, unrelated_pred),
+                          tf.logical_and(related_label, related_pred)), dtype=tf.float32))
 
     @staticmethod
     def _cosine_similarity(logit_1, logit_2):
