@@ -2,8 +2,8 @@ import tensorflow as tf
 from lib.models.LSTM import LSTM
 from lib.utils.synthetic_datasets import SyntheticDatasetLSTM
 
-batch_size = 64
-learning_rate = 0.001
+batch_size = 128
+learning_rate = 0.0001
 max_steps = 10000
 lstm_num_layers = 2
 lstm_num_hidden = 128
@@ -16,7 +16,8 @@ input1 = tf.placeholder(dtype=tf.float32, shape=[None, None])
 input2 = tf.placeholder(dtype=tf.float32, shape=[None, None])
 labels = tf.placeholder(dtype=tf.float32, shape=[None])
 
-nn = LSTM(batch_size=batch_size,
+nn = LSTM(is_training,
+          batch_size=batch_size,
           lstm_num_layers=lstm_num_layers,
           lstm_num_hidden=lstm_num_hidden,
           padding_value=padding_value)
@@ -37,5 +38,6 @@ for i in range(max_steps):
     result = sess.run([loss, accuracy, train_step],
                       feed_dict={input1: timeseries1,
                                  input2: timeseries2,
-                                 labels: y})
+                                 labels: y,
+                                 is_training: True})
     print("step: %3d, loss: %.6f, acc: %.3f" % (i, result[0], result[1]))

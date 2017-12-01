@@ -1,14 +1,16 @@
-#region imports
+# region imports
 import os
 import sys
+
 path = os.path.dirname(os.path.dirname(os.path.abspath(sys.modules['__main__'].__file__))) + '/data/'
 sys.path.append(path)  # to correctly import Dataset
 
 import tensorflow as tf
 import numpy as np
-from dataset import Dataset
+from yahoo_datasets import TrigramsDataset
 from lib.models.SDQA import SDQA
-#endregion
+
+# endregion
 
 checkpoint_path = './ckpt/'
 checkpoint_prefix = 'ckpt_sdqa'
@@ -21,9 +23,9 @@ loss_margin = 0.3
 learning_rate = 0.001
 max_steps = 10000
 
-data = Dataset(batch_size,
-               dataset_filename,
-               data_dir=dataset_folder)
+data = TrigramsDataset(batch_size,
+                       dataset_filename,
+                       dataset_folder)
 
 # initialize the network
 is_training = tf.placeholder(tf.bool)
