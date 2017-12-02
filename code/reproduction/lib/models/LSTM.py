@@ -1,16 +1,16 @@
 import tensorflow as tf
-import numpy as np
 
 
 class LSTM:
     def __init__(self, is_training, vocabulary_filepath, train_embedding=False,
                  batch_size=64, lstm_num_layers=2, lstm_num_hidden=128,
-                 num_hidden_fc=128):
+                 num_hidden_fc=128, use_tfrecord=False):
         self._is_training = is_training
         self._lstm_num_hidden = lstm_num_hidden
         self._lstm_num_layers = lstm_num_layers
         self._batch_size = batch_size
         self._num_hidden_fc = num_hidden_fc
+        self._tfrecord = use_tfrecord
 
         self._load_embeddings(vocabulary_filepath)
 
@@ -35,13 +35,18 @@ class LSTM:
                          (logits1, logits2), dtype=tf.float32)
 
     def _define_network(self, inputs):
-        inputs = tf.expand_dims(inputs, dim=-1)
-        tf.reduce_max(tf.size(inputs))
-        dense_inputs = tf.map_fn(lambda x: self._string_to_dense(x, 1000), inputs, dtype=tf.string)
-        dense_inputs = tf.squeeze(dense_inputs, axis=1)
-        padded_inputs = self.lookup_table.lookup(dense_inputs)
+        if self._tfrecord is False:
+            inputs = tf.expand_dims(inputs, dim=-1)
+            tf.reduce_max(tf.size(inputs))
+            dense_inputs = tf.map_fn(lambda x: self._string_to_dense(x, 1000), inputs, dtype=tf.string)
+            dense_inputs = tf.squeeze(dense_inputs, axis=1)
+            padded_inputs = self.lookup_table.lookup(dense_inputs)
+        else:
+            padded_inputs = self.lookup_table.lookup(inputs)
+
         embedded_inputs = tf.cast(tf.nn.embedding_lookup(self.embedding_matrix, padded_inputs), dtype=tf.float32)
         sequence_length = self._padded_length(padded_inputs, self.vocab_length - 2)
+
         stacked_lstm = tf.contrib.rnn.MultiRNNCell(
             [self._lstm_cell(self._lstm_num_hidden) for _ in range(self._lstm_num_layers)])
 

@@ -20,7 +20,7 @@ learning_rate = 0.0001
 max_steps = 10000
 lstm_num_layers = 1
 lstm_num_hidden = 128
-train_embedding = False
+train_embedding = True
 
 data = LSTMDataset(batch_size,
                    dataset_filename,
@@ -44,7 +44,7 @@ if train_embedding is False:
     nn.assign_embedding_matrix(embedding_matrix)
     np_embedding_matrix = np.load(embeddings_filepath)
 else:
-    np_embedding_matrix = None
+    np_embedding_matrix = [[None]]
 
 cosine_similarity = nn.inference(input1, input2)
 loss = nn.loss(labels, cosine_similarity)
