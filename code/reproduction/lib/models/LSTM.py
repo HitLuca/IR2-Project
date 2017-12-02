@@ -3,7 +3,7 @@ import numpy as np
 
 
 class LSTM:
-    def __init__(self, is_training, vocabulary_filepath,
+    def __init__(self, is_training, vocabulary_filepath, train_embedding=False,
                  batch_size=64, lstm_num_layers=2, lstm_num_hidden=128,
                  num_hidden_fc=128):
         self._is_training = is_training
@@ -14,8 +14,14 @@ class LSTM:
 
         self._load_embeddings(vocabulary_filepath)
 
-        self.embedding_matrix = tf.get_variable(name='embeddings',
-                                                shape=[self.vocab_length, 300])
+        if train_embedding:             # train our own embedding matrix
+            self.e_initializer = tf.random_uniform_initializer(minval=-1.0, maxval=1.0)
+            self.embedding_matrix = tf.get_variable(shape=[self.vocab_length, 300],
+                                                    name='embeddings', initializer=self.e_initializer)
+        else:
+            self.embedding_matrix = tf.get_variable(name='embeddings',
+                                                    shape=[self.vocab_length, 300],
+                                                    trainable=False)
 
     def assign_embedding_matrix(self, embedding_matrix):
         self.embedding_matrix.assign(embedding_matrix)

@@ -12,6 +12,7 @@ from yahoo_datasets import LSTMDataset
 dataset_folder = './../data/Yahoo'
 dataset_filename = 'data_LSTM.p'
 vocabulary_filepath = './lib/data/vocabulary.txt'
+yahoo_vocabulary_filepath = './lib/data/yahoo_vocabulary.txt'       # only use the most frequent words
 embeddings_filepath = './lib/data/partial_embedding_matrix.npy'
 
 batch_size = 64
@@ -19,6 +20,7 @@ learning_rate = 0.0001
 max_steps = 10000
 lstm_num_layers = 1
 lstm_num_hidden = 128
+train_embedding = False
 
 data = LSTMDataset(batch_size,
                    dataset_filename,
@@ -38,7 +40,11 @@ nn = LSTM(is_training,
           lstm_num_layers=lstm_num_layers,
           lstm_num_hidden=lstm_num_hidden)
 
-nn.assign_embedding_matrix(embedding_matrix)
+if train_embedding is False:
+    nn.assign_embedding_matrix(embedding_matrix)
+    np_embedding_matrix = np.load(embeddings_filepath)
+else:
+    np_embedding_matrix = None
 
 cosine_similarity = nn.inference(input1, input2)
 loss = nn.loss(labels, cosine_similarity)
@@ -50,8 +56,6 @@ sess.run(tf.global_variables_initializer())
 sess.run(tf.local_variables_initializer())
 sess.run(tf.tables_initializer())
 
-np_embedding_matrix = np.load(embeddings_filepath)
-
 for i in range(max_steps):
     question1, question2, y = data.next_batch()
     result = sess.run([loss, accuracy, train_step],
@@ -61,3 +65,5 @@ for i in range(max_steps):
                                  is_training: True,
                                  embedding_matrix: np_embedding_matrix})
     print("step: %3d, loss: %.6f, acc: %.3f" % (i, result[0], result[1]))
+
+sess.close()
