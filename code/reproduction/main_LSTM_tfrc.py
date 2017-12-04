@@ -2,6 +2,7 @@ import tensorflow as tf
 import os
 import sys
 import numpy as np
+import time
 
 path = os.path.dirname(os.path.dirname(os.path.abspath(sys.modules['__main__'].__file__))) + '/data/'
 sys.path.append(path)  # to correctly import Dataset
@@ -26,7 +27,7 @@ train_embedding = True
 dataset_path = os.path.join(dataset_folder, dataset_filename)
 
 # create a dataset iterator
-dataset = LSTMDataset_TFRC(dataset_path, batch_size, 10, max_steps, True)
+dataset = LSTMDataset_TFRC(dataset_path, batch_size, 10, 50, True, vocabulary_filepath)
 iterator = dataset()
 
 # load the next batch
@@ -61,12 +62,17 @@ sess.run(tf.local_variables_initializer())
 sess.run(tf.tables_initializer())
 sess.run(iterator.initializer)
 
-for i in range(2):
+start = time.time()
+for i in range(1000):
     result = sess.run([loss, accuracy, train_step],
                       feed_dict={
                           is_training: True,
                           embedding_matrix: np_embedding_matrix
                       })
     print("step: %3d, loss: %.6f, acc: %.3f" % (i, result[0], result[1]))
+    # result = sess.run([question1, question2, labels])
+    # if i % 5 == 0:
+    #     print("Time elapsed: {}".format(time.time() - start))
+    #     start = time.time()
 
 sess.close()

@@ -3,21 +3,31 @@ from tensorflow.contrib.data import TFRecordDataset
 
 
 class LSTMDataset_TFRC:
-    def __init__(self, files, batch_size, num_epochs, max_length, train):
+    def __init__(self, files, batch_size, num_epochs, max_length, train,
+                 vocabulary_filepath='./lib/data/vocabulary.txt'):
+
         self.max_length = max_length
         self.dataset = TFRecordDataset(files)
 
+        self._load_lookup_table(vocabulary_filepath)
+
         if train:
             self.dataset = self.dataset.map(
-                self._parser, num_parallel_calls=4,
-                output_buffer_size=batch_size * 4).shuffle(buffer_size=10000).repeat(num_epochs).batch(batch_size)
-
+                self._parser, num_parallel_calls=16,
+                output_buffer_size=batch_size * 8).shuffle(buffer_size=10000).repeat(num_epochs).batch(batch_size)
         else:
             self.dataset = self.dataset.map(
-                self._parser, num_parallel_calls=4,
-                output_buffer_size=batch_size * 4).shuffle(buffer_size=10000).repeat(1).batch(batch_size)
+                self._parser, num_parallel_calls=16,
+                output_buffer_size=batch_size * 8).shuffle(buffer_size=10000).repeat(1).batch(batch_size)
 
         self.iterator = self.dataset.make_initializable_iterator()
+
+    def _load_lookup_table(self, vocabulary_filepath):
+        file = open(vocabulary_filepath)
+        vocabulary = list(file.readlines())
+        self.vocab_length = len(vocabulary)
+        self.lookup_table = tf.contrib.lookup.index_table_from_file(vocabulary_file=vocabulary_filepath,
+                                                                    default_value=self.vocab_length-1)
 
     def __call__(self):
         return self.iterator
@@ -43,6 +53,9 @@ class LSTMDataset_TFRC:
                                     validate_indices=False)
         answer_words = tf.reshape(answer, [self.max_length])
         # answer_words = tf.concat([answer_words, ['<EOS>']], 0)
+
+        subject_words = self.lookup_table.lookup(subject_words)
+        answer_words = self.lookup_table.lookup(answer_words)
 
         label = tf.reshape(features['label'], [1])
         label = tf.cast(label, dtype=tf.float32)

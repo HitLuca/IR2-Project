@@ -2,6 +2,7 @@ import tensorflow as tf
 import os
 import sys
 import numpy as np
+import time
 
 path = os.path.dirname(os.path.dirname(os.path.abspath(sys.modules['__main__'].__file__))) + '/data/'
 sys.path.append(path)  # to correctly import Dataset
@@ -56,8 +57,10 @@ sess.run(tf.global_variables_initializer())
 sess.run(tf.local_variables_initializer())
 sess.run(tf.tables_initializer())
 
+start = time.time()
 for i in range(max_steps):
     question1, question2, y = data.next_batch()
+    # res = sess.run([i1l, i2l], feed_dict={input1: question1, input2: question2})
     result = sess.run([loss, accuracy, train_step],
                       feed_dict={input1: question1,
                                  input2: question2,
@@ -65,5 +68,8 @@ for i in range(max_steps):
                                  is_training: True,
                                  embedding_matrix: np_embedding_matrix})
     print("step: %3d, loss: %.6f, acc: %.3f" % (i, result[0], result[1]))
+    # if i % 5 == 0:
+    #     print("Time elapsed: {}".format(time.time() - start))
+    #     start = time.time()
 
 sess.close()
