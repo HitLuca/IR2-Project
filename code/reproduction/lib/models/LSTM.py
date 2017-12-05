@@ -56,14 +56,21 @@ class LSTM:
                                            sequence_length=sequence_length,
                                            dtype=tf.float32)
 
-        batch_size = tf.shape(outputs)[0]
-        max_length = tf.shape(outputs)[1]
-        out_size = int(outputs.get_shape()[2])
-        index = tf.range(0, batch_size) * max_length + (sequence_length - 1)
-        flat = tf.reshape(outputs, [-1, out_size])
-        relevant = tf.gather(flat, index)
-        relevant = tf.layers.batch_normalization(relevant, training=self._is_training)
-        logits = tf.layers.dense(relevant, self._num_hidden_fc, activation=None)
+        # batch_size = tf.shape(outputs)[0]
+        # max_length = tf.shape(outputs)[1]
+        # out_size = int(outputs.get_shape()[2])
+        # index = tf.range(0, batch_size) * max_length + (sequence_length - 1)
+        # flat = tf.reshape(outputs, [-1, out_size])
+        # relevant = tf.gather(flat, index)
+        #
+        # relevant = tf.layers.dropout(relevant, rate=0.5, training=self._is_training)
+        # # relevant = tf.layers.batch_normalization(relevant, training=self._is_training)
+        #
+        # logits = tf.layers.dense(relevant, self._num_hidden_fc, activation=None)
+        #
+        # return logits
+
+        logits = tf.layers.dense(state[0][1], self._num_hidden_fc, activation=None)
         return logits
 
     @staticmethod
@@ -74,18 +81,38 @@ class LSTM:
 
     @staticmethod
     def _lstm_cell(lstm_num_hidden):
-        return tf.contrib.rnn.BasicLSTMCell(lstm_num_hidden)
+        return tf.contrib.rnn.LSTMCell(num_units=lstm_num_hidden, initializer=tf.orthogonal_initializer)
 
     @staticmethod
     def train_step(loss, learning_rate):
-        return tf.train.AdamOptimizer(learning_rate).minimize(loss)
+        update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+
+        optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
+
+        with tf.control_dependencies(update_ops):
+            train_op = optimizer.minimize(loss)
+
+        # return tf.train.AdamOptimizer(learning_rate).minimize(loss)
+        return train_op
+
+    # @staticmethod
+    # def accuracy(label, cosine_similarity):
+    #     related_pred = tf.cast(tf.greater_equal(cosine_similarity, 0), dtype=tf.float32)
+    #     related_label = tf.cast(tf.equal(label, 1.0), dtype=tf.float32)
+    #
+    #     return tf.reduce_mean(tf.cast(tf.equal(related_label, related_pred), dtype=tf.float32))
 
     @staticmethod
-    def accuracy(label, cosine_similarity):
-        related_pred = tf.cast(tf.greater_equal(cosine_similarity, 0), dtype=tf.float32)
-        related_label = tf.cast(tf.equal(label, 1.0), dtype=tf.float32)
+    def accuracy(label, cosine_similarity, accuracy_threshold=0.5):
+        related_pred = tf.greater_equal(cosine_similarity, accuracy_threshold)
+        related_label = tf.equal(label, 1.0)
 
-        return tf.reduce_mean(tf.cast(tf.equal(related_label, related_pred), dtype=tf.float32))
+        unrelated_pred = tf.less_equal(cosine_similarity, -accuracy_threshold)
+        unrelated_label = tf.equal(label, 0.0)
+
+        return tf.reduce_mean(tf.abs(cosine_similarity) * tf.cast(
+            tf.logical_or(tf.logical_and(unrelated_label, unrelated_pred),
+                          tf.logical_and(related_label, related_pred)), dtype=tf.float32))
 
     @staticmethod
     def _cosine_similarity(logit_1, logit_2):

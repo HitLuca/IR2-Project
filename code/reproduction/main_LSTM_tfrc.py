@@ -71,8 +71,8 @@ for i in range(1000):
                       })
     print("step: %3d, loss: %.6f, acc: %.3f" % (i, result[0], result[1]))
     # result = sess.run([question1, question2, labels])
-    # if i % 5 == 0:
-    #     print("Time elapsed: {}".format(time.time() - start))
-    #     start = time.time()
+    if i % 100 == 0:
+        print("Time elapsed: {}".format(time.time() - start))
+        start = time.time()
 
 sess.close()

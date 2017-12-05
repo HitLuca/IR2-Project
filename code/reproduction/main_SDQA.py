@@ -15,8 +15,9 @@ from lib.models.SDQA import SDQA
 checkpoint_path = './ckpt/'
 checkpoint_prefix = 'ckpt_sdqa'
 
-dataset_folder = './../data/Yahoo'
-dataset_filename = 'dummy.p'
+# dataset_folder = './../data/Yahoo'
+dataset_folder = './../data/batch_creation'
+dataset_filename = 'minimal_sparse'
 shuffle_dataset = True
 batch_size = 64
 loss_margin = 0.3
