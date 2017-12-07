@@ -12,26 +12,31 @@ from lib.models.LSTM import LSTM
 from yahoo_dataset_tfrc import LSTMDataset_TFRC
 
 dataset_folder = './../data/Yahoo'
-dataset_filename = 'data_lstm.tfrecord'
-vocabulary_filepath = './lib/data/vocabulary.txt'
-yahoo_vocabulary_filepath = './lib/data/yahoo_vocabulary.txt'       # only use the most frequent words
-embeddings_filepath = './lib/data/partial_embedding_matrix.npy'
+dataset_filename = 'data_lstm_test.tfrecord'
+vocabulary_filepath = './lib/data/testset_vocabulary.txt'
+embeddings_filepath = './lib/data/testset_partial_embedding_matrix.npy'
 
 batch_size = 64
-learning_rate = 0.0001
+learning_rate = 0.001
 max_steps = 10000
 lstm_num_layers = 1
 lstm_num_hidden = 128
-train_embedding = True
+train_embedding = False
+
+# TODO: Add a tag to allow fine tuning the embedding
 
 dataset_path = os.path.join(dataset_folder, dataset_filename)
 
 # create a dataset iterator
-dataset = LSTMDataset_TFRC(dataset_path, batch_size, 10, 50, True, vocabulary_filepath)
+dataset = LSTMDataset_TFRC(dataset_path, batch_size, 10, 100, True, vocabulary_filepath)
+dataset_test = LSTMDataset_TFRC(dataset_path, batch_size, 10, 100, False, vocabulary_filepath)
+
 iterator = dataset()
+iterator_test = dataset_test()
 
 # load the next batch
 question1, question2, labels = iterator.get_next()
+q1_test, q2_test, l_test = iterator_test.get_next()
 
 # initialize the network
 is_training = tf.placeholder(tf.bool)
@@ -51,28 +56,63 @@ if train_embedding is False:
 else:
     np_embedding_matrix = [[None]]
 
-cosine_similarity = nn.inference(question1, question2)
-loss = nn.loss(labels, cosine_similarity)
-train_step = nn.train_step(loss, learning_rate)
-accuracy = nn.accuracy(labels, cosine_similarity)
+# perform inference on the training set
+with tf.variable_scope("inference"):
+    cosine_similarity = nn.inference(question1, question2)
+    loss = nn.loss(labels, cosine_similarity)
+    train_step = nn.train_step(loss, learning_rate)
+    accuracy = nn.accuracy(labels, cosine_similarity)
+
+# reuse the network for testing on the whole dataset
+with tf.variable_scope("inference", reuse=True):
+    cosine_similarity_test = nn.inference(q1_test, q2_test)
+    loss_test = nn.loss(l_test, cosine_similarity_test)
+
+# log the training behavior
+tf.summary.scalar('loss', loss)
+tf.summary.scalar('accuracy', accuracy)
+summary_op = tf.summary.merge_all()
 
 sess = tf.Session()
 sess.run(tf.global_variables_initializer())
 sess.run(tf.local_variables_initializer())
 sess.run(tf.tables_initializer())
-sess.run(iterator.initializer)
 
-start = time.time()
+# initializer data iterators
+sess.run(iterator.initializer)
+sess.run(iterator_test.initializer)
+
+# handling multi-threading
+coord = tf.train.Coordinator()
+threads = tf.train.start_queue_runners(sess=sess, coord=coord)
+
+train_writer = tf.summary.FileWriter('./log_dir/lstm_train', sess.graph)
+
 for i in range(1000):
-    result = sess.run([loss, accuracy, train_step],
+    result = sess.run([loss, accuracy, train_step, summary_op],
                       feed_dict={
                           is_training: True,
                           embedding_matrix: np_embedding_matrix
                       })
     print("step: %3d, loss: %.6f, acc: %.3f" % (i, result[0], result[1]))
-    # result = sess.run([question1, question2, labels])
+    train_writer.add_summary(result[-1], i)
+
+    # Run through the test set
     if i % 100 == 0:
-        print("Time elapsed: {}".format(time.time() - start))
-        start = time.time()
+        print("Iterating through the test set...")
+        total_loss = list()
+        while True:
+            try:
+                test_loss = sess.run(loss_test)
+                total_loss.append(test_loss)
+            except tf.errors.OutOfRangeError:
+                print("Testing loss at step: {}, loss: {}".format(i, np.array(total_loss).mean()))
+                break
+        # reset the test set iterator
+        sess.run(iterator_test.initializer)
+
+
+coord.request_stop()
+coord.join(threads)
 
 sess.close()

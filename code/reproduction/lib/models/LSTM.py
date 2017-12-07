@@ -4,7 +4,7 @@ import tensorflow as tf
 class LSTM:
     def __init__(self, is_training, vocabulary_filepath, train_embedding=False,
                  batch_size=64, lstm_num_layers=2, lstm_num_hidden=128,
-                 num_hidden_fc=128, use_tfrecord=False):
+                 num_hidden_fc=128, use_tfrecord=True):
         self._is_training = is_training
         self._lstm_num_hidden = lstm_num_hidden
         self._lstm_num_layers = lstm_num_layers
@@ -21,7 +21,7 @@ class LSTM:
         else:
             self.embedding_matrix = tf.get_variable(name='embeddings',
                                                     shape=[self.vocab_length, 300],
-                                                    trainable=False)
+                                                    trainable=True)
 
     def assign_embedding_matrix(self, embedding_matrix):
         self.embedding_matrix.assign(embedding_matrix)
@@ -38,7 +38,7 @@ class LSTM:
         if self._tfrecord is False:
             inputs = tf.expand_dims(inputs, dim=-1)
             tf.reduce_max(tf.size(inputs))
-            dense_inputs = tf.map_fn(lambda x: self._string_to_dense(x, 50), inputs, dtype=tf.string)
+            dense_inputs = tf.map_fn(lambda x: self._string_to_dense(x, 200), inputs, dtype=tf.string)
             dense_inputs = tf.squeeze(dense_inputs, axis=1)
             padded_inputs = self.lookup_table.lookup(dense_inputs)
 
@@ -46,14 +46,17 @@ class LSTM:
             sequence_length = self._padded_length(padded_inputs, self.vocab_length - 2)
         else:
             embedded_inputs = tf.cast(tf.nn.embedding_lookup(self.embedding_matrix, inputs), dtype=tf.float32)
-            sequence_length = self._padded_length(inputs, self.vocab_length - 2)
+            # sequence_length = self._padded_length(inputs, self.vocab_length - 2)
+
+        # TODO: Fix the sequence length calculation
+        # TODO: Check the indices for the padding and unk tokens
 
         stacked_lstm = tf.contrib.rnn.MultiRNNCell(
             [self._lstm_cell(self._lstm_num_hidden) for _ in range(self._lstm_num_layers)])
 
         outputs, state = tf.nn.dynamic_rnn(cell=stacked_lstm,
                                            inputs=embedded_inputs,
-                                           sequence_length=sequence_length,
+                                           # sequence_length=sequence_length,
                                            dtype=tf.float32)
 
         # batch_size = tf.shape(outputs)[0]
