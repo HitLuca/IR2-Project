@@ -6,7 +6,7 @@ class LSTMDataset_TFRC:
     def __init__(self, files, batch_size, num_epochs, max_length, train,
                  vocabulary_filepath='./lib/data/vocabulary.txt'):
 
-        self.max_length = max_length
+        self.max_length = max_length - 1        # -1 to include a padding for EVERY sentence
         self.dataset = TFRecordDataset(files)
 
         self._load_lookup_table(vocabulary_filepath)
@@ -45,14 +45,14 @@ class LSTMDataset_TFRC:
                                      subject.values[0: self.max_length], default_value='<PAD>',
                                      validate_indices=False)
         subject_words = tf.reshape(subject, [self.max_length])
-        # subject_words = tf.concat([subject_words, ['<EOS>']], 0)
+        subject_words = tf.concat([subject_words, ['<PAD>']], 0)
 
         answer = tf.string_split([features['subject']])
         answer = tf.sparse_to_dense(answer.indices[0: self.max_length], [1, self.max_length],
                                     answer.values[0: self.max_length], default_value='<PAD>',
                                     validate_indices=False)
         answer_words = tf.reshape(answer, [self.max_length])
-        # answer_words = tf.concat([answer_words, ['<EOS>']], 0)
+        answer_words = tf.concat([answer_words, ['<PAD>']], 0)
 
         subject_words = self.lookup_table.lookup(subject_words)
         answer_words = self.lookup_table.lookup(answer_words)

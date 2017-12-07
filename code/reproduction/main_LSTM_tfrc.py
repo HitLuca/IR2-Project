@@ -86,6 +86,11 @@ coord = tf.train.Coordinator()
 threads = tf.train.start_queue_runners(sess=sess, coord=coord)
 
 train_writer = tf.summary.FileWriter('./log_dir/lstm_train', sess.graph)
+# test_writer = tf.summary.FileWriter('./log_dir/lstm_test')
+
+f = open("training_stat.txt", "w")
+f.write("step\tloss\n")
+f.flush()
 
 for i in range(100000):
     result = sess.run([loss, accuracy, train_step, summary_op],
@@ -106,12 +111,17 @@ for i in range(100000):
             try:
                 test_loss = sess.run(loss_test)
                 total_loss.append(test_loss)
+                # test_writer.add_summary(test_summary, i)
             except tf.errors.OutOfRangeError:
-                print("Testing loss at step: {}, loss: {}".format(i, np.array(total_loss).mean()))
+                mean_loss = np.array(total_loss).mean()
+                print("Testing loss at step: {}, loss: {}".format(i, mean_loss))
+                f.write(str(i) + "\t" + str(mean_loss) + "\n")
                 break
         # reset the test set iterator
         sess.run(iterator_test.initializer)
 
+f.flush()
+f.close()
 
 coord.request_stop()
 coord.join(threads)
