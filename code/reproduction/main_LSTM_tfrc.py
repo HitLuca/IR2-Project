@@ -8,7 +8,6 @@ path = os.path.dirname(os.path.dirname(os.path.abspath(sys.modules['__main__']._
 sys.path.append(path)  # to correctly import Dataset
 
 from lib.models.LSTM import LSTM
-# from yahoo_datasets import LSTMDataset
 from yahoo_dataset_tfrc import LSTMDataset_TFRC
 
 dataset_folder = './../data/Yahoo'
@@ -88,14 +87,16 @@ threads = tf.train.start_queue_runners(sess=sess, coord=coord)
 
 train_writer = tf.summary.FileWriter('./log_dir/lstm_train', sess.graph)
 
-for i in range(1000):
+for i in range(100000):
     result = sess.run([loss, accuracy, train_step, summary_op],
                       feed_dict={
                           is_training: True,
                           embedding_matrix: np_embedding_matrix
                       })
-    print("step: %3d, loss: %.6f, acc: %.3f" % (i, result[0], result[1]))
-    train_writer.add_summary(result[-1], i)
+
+    if i % 10 == 0:
+        print("step: %3d, loss: %.6f, acc: %.3f" % (i, result[0], result[1]))
+        train_writer.add_summary(result[-1], i)
 
     # Run through the test set
     if i % 100 == 0:

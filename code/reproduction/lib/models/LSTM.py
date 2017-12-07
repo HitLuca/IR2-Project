@@ -21,7 +21,7 @@ class LSTM:
         else:
             self.embedding_matrix = tf.get_variable(name='embeddings',
                                                     shape=[self.vocab_length, 300],
-                                                    trainable=True)
+                                                    trainable=False)
 
     def assign_embedding_matrix(self, embedding_matrix):
         self.embedding_matrix.assign(embedding_matrix)
@@ -46,17 +46,14 @@ class LSTM:
             sequence_length = self._padded_length(padded_inputs, self.vocab_length - 2)
         else:
             embedded_inputs = tf.cast(tf.nn.embedding_lookup(self.embedding_matrix, inputs), dtype=tf.float32)
-            # sequence_length = self._padded_length(inputs, self.vocab_length - 2)
-
-        # TODO: Fix the sequence length calculation
-        # TODO: Check the indices for the padding and unk tokens
+            sequence_length = self._padded_length(inputs, self.vocab_length - 2)
 
         stacked_lstm = tf.contrib.rnn.MultiRNNCell(
             [self._lstm_cell(self._lstm_num_hidden) for _ in range(self._lstm_num_layers)])
 
         outputs, state = tf.nn.dynamic_rnn(cell=stacked_lstm,
                                            inputs=embedded_inputs,
-                                           # sequence_length=sequence_length,
+                                           sequence_length=sequence_length,
                                            dtype=tf.float32)
 
         # batch_size = tf.shape(outputs)[0]
@@ -88,15 +85,15 @@ class LSTM:
 
     @staticmethod
     def train_step(loss, learning_rate):
-        update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+        # update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+        #
+        # optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
+        #
+        # with tf.control_dependencies(update_ops):
+        #     train_op = optimizer.minimize(loss)
 
-        optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
-
-        with tf.control_dependencies(update_ops):
-            train_op = optimizer.minimize(loss)
-
-        # return tf.train.AdamOptimizer(learning_rate).minimize(loss)
-        return train_op
+        # return train_op
+        return tf.train.AdamOptimizer(learning_rate).minimize(loss)
 
     # @staticmethod
     # def accuracy(label, cosine_similarity):
