@@ -10,6 +10,7 @@ import time
 
 '''
 this is a script to convert the dataset in pandas to tfrecord
+this script also create negative samples so that +ve to -ve sample are mixed at ratio of 50/50
 '''
 
 class Example:
@@ -45,9 +46,13 @@ input_file_name = "data_LSTM.p"
 
 df = pd.read_pickle(input_file_name)
 
+# set the label of +ve samples to 1.0
 df['label'] = 1.0
+
+# select interested columns
 df = df.loc[:, ['subject_preprocessed', 'bestanswer_preprocessed', 'label']]
 
+# select the subject and answer, then ONLY shuffle the answer
 df_sp = df.loc[:, ['subject_preprocessed']]
 df_bp = df.loc[:, ['bestanswer_preprocessed']]
 df_bp = df_bp.sample(frac=1.0)      # shuffle the answer only
@@ -56,12 +61,12 @@ df_sp.reset_index(drop=True, inplace=True)
 df_bp.reset_index(drop=True, inplace=True)
 
 df_neg = pd.concat([df_sp, df_bp], axis=1)  # combine the originally ordered subject with shuffled answer
-df_neg['label'] = 0.0                       # add label as not relevant
+df_neg['label'] = 0.0                       # add label as not relevant for -ve sample
 
-df_all = pd.concat([df, df_neg], axis=0)
+df_all = pd.concat([df, df_neg], axis=0)    # concatenate the original data with the -ve sample
 
 df_all = df_all.sample(frac=1.0)            # shuffle the dataset
-df_all = df_all.dropna()
+df_all = df_all.dropna()                    # remove nan, just to be sure
 
 subject = df_all.subject_preprocessed.values
 bestanswer = df_all.bestanswer_preprocessed.values
