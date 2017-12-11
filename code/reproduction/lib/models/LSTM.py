@@ -31,8 +31,13 @@ class LSTM:
             logits1 = self._define_network(inputs1)
         with tf.variable_scope("SiameseNet", reuse=True):
             logits2 = self._define_network(inputs2)
-        return tf.map_fn(lambda logits: self._cosine_similarity(logits[0], logits[1]),
-                         (logits1, logits2), dtype=tf.float32)
+
+        # concatenate the two hidden states
+        combined = tf.concat([logits1, logits2], axis=1)
+
+        output_fc = tf.layers.dense(combined, 1)
+
+        return output_fc
 
     def _define_network(self, inputs):
         if self._tfrecord is False:
@@ -56,21 +61,7 @@ class LSTM:
                                            sequence_length=sequence_length,
                                            dtype=tf.float32)
 
-        # batch_size = tf.shape(outputs)[0]
-        # max_length = tf.shape(outputs)[1]
-        # out_size = int(outputs.get_shape()[2])
-        # index = tf.range(0, batch_size) * max_length + (sequence_length - 1)
-        # flat = tf.reshape(outputs, [-1, out_size])
-        # relevant = tf.gather(flat, index)
-        #
-        # relevant = tf.layers.dropout(relevant, rate=0.5, training=self._is_training)
-        # # relevant = tf.layers.batch_normalization(relevant, training=self._is_training)
-        #
-        # logits = tf.layers.dense(relevant, self._num_hidden_fc, activation=None)
-        #
-        # return logits
-
-        logits = tf.layers.dense(state[0][1], self._num_hidden_fc, activation=None)
+        logits = state[0][1]
         return logits
 
     @staticmethod
@@ -95,24 +86,22 @@ class LSTM:
         # return train_op
         return tf.train.AdamOptimizer(learning_rate).minimize(loss)
 
-    # @staticmethod
-    # def accuracy(label, cosine_similarity):
-    #     related_pred = tf.cast(tf.greater_equal(cosine_similarity, 0), dtype=tf.float32)
-    #     related_label = tf.cast(tf.equal(label, 1.0), dtype=tf.float32)
-    #
-    #     return tf.reduce_mean(tf.cast(tf.equal(related_label, related_pred), dtype=tf.float32))
+    @staticmethod
+    def predict(cosine_similarity):
+        cosine_similarity = tf.nn.sigmoid(cosine_similarity)
+        cosine_similarity = tf.round(cosine_similarity)
+
+        return cosine_similarity
 
     @staticmethod
-    def accuracy(label, cosine_similarity, accuracy_threshold=0.5):
-        related_pred = tf.greater_equal(cosine_similarity, accuracy_threshold)
-        related_label = tf.equal(label, 1.0)
+    def accuracy(label, cosine_similarity):
 
-        unrelated_pred = tf.less_equal(cosine_similarity, -accuracy_threshold)
-        unrelated_label = tf.equal(label, 0.0)
+        cosine_similarity = tf.nn.sigmoid(cosine_similarity)
+        cosine_similarity = tf.round(cosine_similarity)
 
-        return tf.reduce_mean(tf.abs(cosine_similarity) * tf.cast(
-            tf.logical_or(tf.logical_and(unrelated_label, unrelated_pred),
-                          tf.logical_and(related_label, related_pred)), dtype=tf.float32))
+        acc = tf.cast(tf.equal(label, cosine_similarity), tf.float32)
+
+        return tf.reduce_mean(acc)
 
     @staticmethod
     def _cosine_similarity(logit_1, logit_2):
@@ -121,10 +110,10 @@ class LSTM:
         return 1.0 - tf.losses.cosine_distance(normalized_logit_1, normalized_logit_2, dim=0)
 
     @staticmethod
-    def loss(labels, cosine_similarity, margin=0.3):
-        true_mask = tf.cast(tf.equal(labels, tf.ones(shape=tf.shape(labels))), tf.float32)
-        loss = true_mask * (1.0 - cosine_similarity) + (1.0 - true_mask) * (
-            tf.maximum(0.0, cosine_similarity - margin))
+    def loss(labels, cosine_similarity):
+
+        loss = tf.nn.sigmoid_cross_entropy_with_logits(labels=labels, logits=cosine_similarity)
+
         return tf.reduce_mean(loss)
 
     def _load_embeddings(self, vocabulary_filepath):
@@ -142,11 +131,3 @@ class LSTM:
                                    words.values[0: length], default_value='<PAD>',
                                    validate_indices=False)
         return dense
-
-        # @staticmethod
-        # def probabilities(logits):
-        #     return tf.nn.softmax(logits)
-        #
-        # @staticmethod
-        # def predictions(probabilities):
-        #     return tf.argmax(probabilities, axis=-1)
