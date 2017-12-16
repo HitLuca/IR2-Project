@@ -13,6 +13,7 @@ this is a script to convert the dataset in pandas to tfrecord
 this script also create negative samples so that +ve to -ve sample are mixed at ratio of 50/50
 '''
 
+
 class Example:
     def __init__(self, subject, bestanswer, label):
         self.label = label
@@ -39,22 +40,34 @@ class Example:
         }
 
 
-output_file_name = "data_lstm.tfrecord"
-input_file_name = "data_LSTM.p"
+# TODO: take this from args
+mode = "train"
+
+q1_key = "subject"
+q2_key = "bestanswer"
+
+df_paths = {"train": "./Yahoo/train_reduced_df_LSTM.p",
+            "val": "./Yahoo/val_reduced_df_LSTM.p",
+            "test": ""}
+
+output_paths = {"train": "./Yahoo/train_lstm.tfrecord",
+                "val": "./Yahoo/val_lstm.tfrecord",
+                "test": "./Yahoo/test_lstm.tfrecord"}
+
+output_file_name = output_paths[mode]
 
 ##### READING DATA FROM DF
-
-df = pd.read_pickle(input_file_name)
+df = pd.read_pickle(df_paths[mode])
 
 # set the label of +ve samples to 1.0
 df['label'] = 1.0
 
 # select interested columns
-df = df.loc[:, ['subject_preprocessed', 'bestanswer_preprocessed', 'label']]
+df = df.loc[:, [q1_key, q2_key, 'label']]
 
 # select the subject and answer, then ONLY shuffle the answer
-df_sp = df.loc[:, ['subject_preprocessed']]
-df_bp = df.loc[:, ['bestanswer_preprocessed']]
+df_sp = df.loc[:, [q1_key]]
+df_bp = df.loc[:, [q2_key]]
 df_bp = df_bp.sample(frac=1.0)      # shuffle the answer only
 
 df_sp.reset_index(drop=True, inplace=True)
@@ -68,8 +81,9 @@ df_all = pd.concat([df, df_neg], axis=0)    # concatenate the original data with
 df_all = df_all.sample(frac=1.0)            # shuffle the dataset
 df_all = df_all.dropna()                    # remove nan, just to be sure
 
-subject = df_all.subject_preprocessed.values
-bestanswer = df_all.bestanswer_preprocessed.values
+# TODO: UNIFY THE EFFING KEYS!!!!!
+subject = df_all.subject.values
+bestanswer = df_all.bestanswer.values
 labels = df_all.label.values
 
 num_sample = subject.shape[0]
