@@ -41,18 +41,24 @@ class Example:
 
 
 # TODO: take this from args
-mode = "train"
+mode = "val"
 
 q1_key = "subject"
 q2_key = "bestanswer"
 
-df_paths = {"train": "./Yahoo/train_reduced_df_LSTM.p",
-            "val": "./Yahoo/val_reduced_df_LSTM.p",
+df_paths = {"train":     "./Yahoo/train_df_reduced_no_empty.p",
+            "train_sim": "./Yahoo/train_df_sim_len.p",
+            "val":       "./Yahoo/val_df_reduced_no_empty.p",
+            "val_sim":   "./Yahoo/val_df_sim_len.p",
+            "pruned":    "./Yahoo/train_pruned_alot.p",
             "test": ""}
 
-output_paths = {"train": "./Yahoo/train_lstm.tfrecord",
-                "val": "./Yahoo/val_lstm.tfrecord",
-                "test": "./Yahoo/test_lstm.tfrecord"}
+output_paths = {"train":     "./Yahoo/train_lstm.tfrecord",
+                "train_sim": "./Yahoo/train_lstm_sim_len.tfrecord",
+                "val":       "./Yahoo/val_lstm_5000.tfrecord",
+                "val_sim":   "./Yahoo/val_lstm_sim_len.tfrecord",
+                "pruned":    "./Yahoo/train_pruned.tfrecord",
+                "test":      "./Yahoo/test_lstm.tfrecord"}
 
 output_file_name = output_paths[mode]
 
@@ -80,6 +86,10 @@ df_all = pd.concat([df, df_neg], axis=0)    # concatenate the original data with
 
 df_all = df_all.sample(frac=1.0)            # shuffle the dataset
 df_all = df_all.dropna()                    # remove nan, just to be sure
+
+# TODO: Find a better way to do this
+# sample a subset for testing purpose
+df_all = df_all.sample(n=5000)
 
 # TODO: UNIFY THE EFFING KEYS!!!!!
 subject = df_all.subject.values

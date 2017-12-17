@@ -47,7 +47,7 @@ class LSTMDataset_TFRC:
         subject_words = tf.reshape(subject, [self.max_length])
         subject_words = tf.concat([subject_words, ['<PAD>']], 0)
 
-        answer = tf.string_split([features['subject']])
+        answer = tf.string_split([features['bestanswer']])
         answer = tf.sparse_to_dense(answer.indices[0: self.max_length], [1, self.max_length],
                                     answer.values[0: self.max_length], default_value='<PAD>',
                                     validate_indices=False)
