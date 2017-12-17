@@ -39,7 +39,7 @@ class LSTM:
 
         output_fc = tf.layers.dense(combined, 1)
 
-        return output_fc
+        return output_fc, tf.nn.sigmoid(output_fc)
 
         # original loss function
         # # TODO: For the old loss function, calculate cos similarity

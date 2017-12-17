@@ -1,5 +1,6 @@
 import lib.eval.utils_joop as uj
-import lib.eval.evaluation_bench
+import lib.eval.evaluation_bench as evaluation_bench
+
 
 import tensorflow as tf
 import os
@@ -80,7 +81,7 @@ else:
 
 # perform inference on the training set
 with tf.variable_scope("inference"):
-    inference = nn.inference(q1_train, q2_train)
+    inference, _ = nn.inference(q1_train, q2_train)
     loss = nn.loss(label_train, inference)
     train_step = nn.train_step(loss, learning_rate)
     accuracy = nn.accuracy(label_train, inference)
@@ -88,12 +89,12 @@ with tf.variable_scope("inference"):
 
 # reuse the network for testing on the whole dataset
 with tf.variable_scope("inference", reuse=True):
-    inference_test = nn.inference(q1_test, q2_test)
+    inference_test, inference_test_sigmoid = nn.inference(q1_test, q2_test)
     loss_test = nn.loss(label_test, inference_test)
     accuracy_test = nn.accuracy(label_test, inference_test)
 
 with tf.variable_scope("inference", reuse=True):
-    inference_val = nn.inference(q1_val, q2_val)
+    inference_val, _ = nn.inference(q1_val, q2_val)
     loss_val = nn.loss(label_val, inference_val)
     accuracy_val = nn.accuracy(label_val, inference_val)
 
@@ -130,77 +131,71 @@ train_writer = tf.summary.FileWriter('./log_dir/lstm_train', sess.graph)
 # test_writer = tf.summary.FileWriter('./log_dir/lstm_test')
 
 f = open("training_stat.txt", "w")
-f.write("step\tloss\n")
+f.write("step\ttrain_loss\ttrain_acc\tval_loss\tval_acc\n")
 f.flush()
 
-_loss_train, _acc_train = list(), list()
-_loss_test, _acc_test = list(), list()
-_step_train = list()
-_step_test = list()
-
 for i in range(100000):
+    # run training session
     try:
         result = sess.run([loss, accuracy, train_step, label_train, predicted, inference, summary_op],
                           feed_dict={
                               is_training: True,
                               embedding_matrix: np_embedding_matrix
                           })
-
-        # TODO: Change 10 to evaluation interval
         if i % 10 == 0:
             print("step: %3d, loss: %.6f, acc: %.6f" % (i, result[0], result[1]))
             train_writer.add_summary(result[-1], global_step=i)
-            # print(np.min(result[-2]), np.max(result[-2]))
-
-            _loss_train.append(result[0])
-            _acc_train.append(result[1])
-            _step_train.append(i)
-
-            # TODO: Run through the evaluation set
-            # TODO: Write validation summary to test summary
-            # validation_result = sess.run([])
-            # test_writer.add_summary(summary, global_step=i)
-
     except tf.errors.OutOfRangeError:
         print("End of training!")
         break
 
-    # Run through the test set
-    # TODO: Set 100 to the number of steps for an epoch
+    # TODO: Change 100 to evaluation interval
+    # run validating session
     if i % 100 == 0:
-        print("Iterating through the test set...")
+        print("Evaluating at step: %d..." % i)
         total_loss, total_acc = list(), list()
-        # TODO: Initialize a list to store the predictions
-        predictions = list()
 
         while True:
             try:
-                # TODO: Get the prediction of relevance score
-                # test_loss, test_acc = sess.run([loss_test, accuracy_test])
-                pred, test_loss, test_acc = sess.run([inference_test, loss_test, accuracy_test])
-                total_loss.append(test_loss)
-                total_acc.append(test_acc)
+                _loss_val, _acc_val, _inf_val = sess.run([loss_val, accuracy_val, inference_val])
 
-                # TODO: Append the prediction to a list
-                # predictions += list(pred)
+                total_loss.append(_loss_val)
+                total_acc.append(_acc_val)
 
             except tf.errors.OutOfRangeError:
-                mean_loss = np.array(total_loss).mean()
-                mean_acc = np.array(total_acc).mean()
+                mean_val_loss = np.array(total_loss).mean()
+                mean_val_acc = np.array(total_acc).mean()
 
-                _loss_test.append(mean_loss)
-                _acc_test.append(mean_acc)
-                _step_test.append(i)
+                print("Validating at step: {}, loss: {}, acc: {}".format(i, mean_val_loss, mean_val_acc))
 
-                print("Testing at step: {}, loss: {}, acc: {}".format(i, mean_loss, mean_acc))
+                f.write(str(i) + "\t" + str(result[0]) + "\t" + str(result[1]) + "\t"
+                        + str(mean_val_loss) + "\t" + str(mean_val_acc) + "\t" + "\n")
+                break
+        sess.run(iterator_val.initializer)  # reset the validation set iterator
+        f.flush()
+
+    '''
+    # Run through the test set
+    # TODO: Set 100 to the number of steps for an epoch
+    if i % 100 == 0:
+        print("Testing at step: %d" % i)
+
+        predictions = list()    # Initialize a list to store the predictions
+
+        while True:
+            try:
+                pred_test, test_loss, test_acc = sess.run([inference_test_sigmoid, loss_test, accuracy_test])
+                predictions += list(pred_test)
+            except tf.errors.OutOfRangeError:
+                print("Running Evaluation Benchmark...")
 
                 # TODO: Call the evaluation_bench to calculate the scores based on predictions
                 # TODO: Save the result of the evaluation bench
+                eval_result = evaluation_bench.calculate_metrics(predictions)
 
-                f.write(str(i) + "\t" + str(mean_loss) + "\n")
                 break
-        # reset the test set iterator
-        sess.run(iterator_test.initializer)
+        sess.run(iterator_test.initializer)     # reset the test set iterator
+    '''
 
     # TODO: Get the global_step
     # TODO: save model
@@ -208,23 +203,6 @@ for i in range(100000):
     iter = sess.run(model.global_step)
     uj.save_model(model_name, saver, sess, i=iter, save_frequency=save_interval, is_saving=True)
     '''
-
-
-# # plot the train/test loss/acc
-# plt.figure()
-# plt.subplot(1, 2, 1)
-# plt.title("Loss")
-# plt.plot(np.array(_step_train), np.array(_loss_train), label="Training Loss")
-# plt.plot(np.array(_step_test), np.array(_loss_test), label="Testing Loss")
-# plt.legend()
-#
-# plt.subplot(1, 2, 2)
-# plt.title("Accuracy")
-# plt.plot(np.array(_step_train), np.array(_acc_train), label="Training Acc")
-# plt.plot(np.array(_step_test), np.array(_acc_test), label="Testing Acc")
-# plt.legend()
-# plt.show()
-
 
 f.flush()
 f.close()
