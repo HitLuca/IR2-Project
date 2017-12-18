@@ -17,8 +17,8 @@ class LSTMDataset_TFRC:
                 output_buffer_size=batch_size * 8).shuffle(buffer_size=10000).repeat(num_epochs).batch(batch_size)
         else:
             self.dataset = self.dataset.map(
-                self._parser, num_parallel_calls=16,
-                output_buffer_size=batch_size * 8).shuffle(buffer_size=10000).repeat(1).batch(batch_size)
+                self._parser, num_parallel_calls=4,
+                output_buffer_size=batch_size * 2).repeat(1).batch(batch_size)
 
         self.iterator = self.dataset.make_initializable_iterator()
 

@@ -8,6 +8,7 @@ import sys
 import numpy as np
 import time
 import matplotlib.pyplot as plt
+import pickle
 
 path = os.path.dirname(os.path.dirname(os.path.abspath(sys.modules['__main__'].__file__))) + '/data/'
 sys.path.append(path)  # to correctly import Dataset
@@ -18,14 +19,14 @@ from yahoo_dataset_tfrc import LSTMDataset_TFRC
 dataset_folder = './../data/Yahoo'
 
 # non pruned ds, 5k
-training_set_filename = 'train_lstm_5000.tfrecord'
-testing_set_filename = 'train_lstm_5000.tfrecord'
-validating_set_filename = 'train_lstm_5000.tfrecord'
+# training_set_filename = 'train_lstm_5000.tfrecord'
+# testing_set_filename = 'train_lstm_5000.tfrecord'
+# validating_set_filename = 'train_lstm_5000.tfrecord'
 
 # test set, 20k
-# training_set_filename = 'data_lstm_test.tfrecord'
-# testing_set_filename = 'data_lstm_test.tfrecord'
-# validating_set_filename = 'data_lstm_test.tfrecord'
+training_set_filename = 'test_lstm_1018.tfrecord'
+testing_set_filename = 'test_lstm_1018.tfrecord'
+validating_set_filename = 'test_lstm_1018.tfrecord'
 
 ### New embedding (includes vocab from train/val/test split
 vocabulary_filepath = './../data/Embedding/vocabulary.txt'
@@ -116,10 +117,10 @@ sess.run(iterator_test.initializer)
 sess.run(iterator_val.initializer)
 
 # # evaluation
-# evaluation_interval = 250     # evaluation interval is ARBITRARY
-# save_interval = 1000          # Every Epoch
-# model_name = 'trigram_fc'
-# saver = uj.get_saver(model_name, sess, is_continue_training=False)
+evaluation_interval = 100     # evaluation interval is ARBITRARY
+save_interval = 1000          # Every Epoch
+model_name = 'lstm'
+saver = uj.get_saver(model_name, sess, is_continue_training=False)
 # train_writer, test_writer = uj.get_writers(sess, model_name)
 
 
@@ -133,6 +134,10 @@ train_writer = tf.summary.FileWriter('./log_dir/lstm_train', sess.graph)
 f = open("training_stat.txt", "w")
 f.write("step\ttrain_loss\ttrain_acc\tval_loss\tval_acc\n")
 f.flush()
+
+# store the prediction result and evaluation result
+eval_result_list = list()
+pred_result_list = list()
 
 for i in range(100000):
     # run training session
@@ -149,60 +154,48 @@ for i in range(100000):
         print("End of training!")
         break
 
-    # TODO: Change 100 to evaluation interval
     # run validating session
-    if i % 100 == 0:
-        print("Evaluating at step: %d..." % i)
+    if i % evaluation_interval == 0:
         total_loss, total_acc = list(), list()
 
-        while True:
-            try:
-                _loss_val, _acc_val, _inf_val = sess.run([loss_val, accuracy_val, inference_val])
+        _loss_val, _acc_val, _inf_val = sess.run([loss_val, accuracy_val, inference_val])
 
-                total_loss.append(_loss_val)
-                total_acc.append(_acc_val)
+        print("Validating at step: {}, loss: {}, acc: {}".format(i, _loss_val, _acc_val))
 
-            except tf.errors.OutOfRangeError:
-                mean_val_loss = np.array(total_loss).mean()
-                mean_val_acc = np.array(total_acc).mean()
-
-                print("Validating at step: {}, loss: {}, acc: {}".format(i, mean_val_loss, mean_val_acc))
-
-                f.write(str(i) + "\t" + str(result[0]) + "\t" + str(result[1]) + "\t"
-                        + str(mean_val_loss) + "\t" + str(mean_val_acc) + "\t" + "\n")
-                break
-        sess.run(iterator_val.initializer)  # reset the validation set iterator
+        f.write(str(i) + "\t" + str(result[0]) + "\t" + str(result[1]) + "\t"
+                + str(_loss_val) + "\t" + str(_acc_val) + "\t" + "\n")
         f.flush()
 
-    '''
     # Run through the test set
-    # TODO: Set 100 to the number of steps for an epoch
-    if i % 100 == 0:
-        print("Testing at step: %d" % i)
+    if i % save_interval == 0:
+        print("Testing at step: %d..." % i)
 
         predictions = list()    # Initialize a list to store the predictions
 
         while True:
             try:
                 pred_test, test_loss, test_acc = sess.run([inference_test_sigmoid, loss_test, accuracy_test])
-                predictions += list(pred_test)
+                predictions += list(np.squeeze(pred_test))
+
             except tf.errors.OutOfRangeError:
                 print("Running Evaluation Benchmark...")
 
-                # TODO: Call the evaluation_bench to calculate the scores based on predictions
-                # TODO: Save the result of the evaluation bench
                 eval_result = evaluation_bench.calculate_metrics(predictions)
+
+                # Save the eval_result, predictions
+                eval_result_list.append({"epoch": i, "data": eval_result})
+                pred_result_list.append({"epoch": i, "predictions": predictions})
+
+                with open("eval_results.p", "wb") as f_eval:
+                    pickle.dump(eval_result_list, f_eval)
+                with open("pred_results.p", "wb") as f_pred:
+                    pickle.dump(pred_result_list, f_pred)
 
                 break
         sess.run(iterator_test.initializer)     # reset the test set iterator
-    '''
 
-    # TODO: Get the global_step
-    # TODO: save model
-    '''
-    iter = sess.run(model.global_step)
-    uj.save_model(model_name, saver, sess, i=iter, save_frequency=save_interval, is_saving=True)
-    '''
+    iter = sess.run(nn.global_step)
+    uj.save_model(model_name, saver, sess, i=iter, save_frequency=100, is_saving=True)
 
 f.flush()
 f.close()
