@@ -41,11 +41,6 @@ class LSTM:
 
         return output_fc, tf.nn.sigmoid(output_fc)
 
-        # original loss function
-        # # TODO: For the old loss function, calculate cos similarity
-        # return tf.map_fn(lambda logits: self._cosine_similarity(logits[0], logits[1]),
-        #                  (logits1, logits2), dtype=tf.float32)
-
     def _define_network(self, inputs):
         if self._tfrecord is False:
             inputs = tf.expand_dims(inputs, dim=-1)
@@ -117,14 +112,9 @@ class LSTM:
 
     @staticmethod
     def loss(labels, cosine_similarity):
-        # # TODO: Old loss, to be removed, or place into a different script
-        # true_mask = tf.cast(tf.equal(labels, tf.ones(shape=tf.shape(labels))), tf.float32)
-        # loss = true_mask * (1.0 - cosine_similarity) + (1.0 - true_mask) * (
-        #     tf.maximum(0.0, cosine_similarity - 0.3))
 
         # NEW LOSS
         loss = tf.nn.sigmoid_cross_entropy_with_logits(labels=labels, logits=cosine_similarity)
-        # loss = tf.squared_difference(labels, cosine_similarity)
 
         return tf.reduce_mean(loss)
 

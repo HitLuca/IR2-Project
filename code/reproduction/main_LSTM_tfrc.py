@@ -1,7 +1,6 @@
 import lib.eval.utils_joop as uj
 import lib.eval.evaluation_bench as evaluation_bench
 
-
 import tensorflow as tf
 import os
 import sys
@@ -19,27 +18,31 @@ from yahoo_dataset_tfrc import LSTMDataset_TFRC
 dataset_folder = './../data/Yahoo'
 
 # non pruned ds, 5k
-# training_set_filename = 'train_lstm_5000.tfrecord'
-# testing_set_filename = 'train_lstm_5000.tfrecord'
-# validating_set_filename = 'train_lstm_5000.tfrecord'
+# training_set_filename = 'train_lstm_20000.tfrecord'
+# testing_set_filename = 'train_lstm_20000.tfrecord'
+# validating_set_filename = 'train_lstm_20000.tfrecord'
 
 # test set, 20k
 training_set_filename = 'test_lstm_1018.tfrecord'
 testing_set_filename = 'test_lstm_1018.tfrecord'
 validating_set_filename = 'test_lstm_1018.tfrecord'
 
-### New embedding (includes vocab from train/val/test split
+# embedding
 vocabulary_filepath = './../data/Embedding/vocabulary.txt'
 embeddings_filepath = './../data/Embedding/partial_embedding_matrix.npy'
 
 batch_size = 256
 learning_rate = 0.01
-max_steps = 10000
+max_steps = 1000000
 lstm_num_layers = 1
 lstm_num_hidden = 128
 train_embedding = False
-training_epochs = 20
+training_epochs = 40
 max_length = 40
+
+evaluation_interval = 100     # evaluation interval is ARBITRARY
+save_interval = 11718          # Every Epoch
+model_name = 'lstm'
 
 training_set_path = os.path.join(dataset_folder, training_set_filename)
 testing_set_path = os.path.join(dataset_folder, testing_set_filename)
@@ -88,12 +91,13 @@ with tf.variable_scope("inference"):
     accuracy = nn.accuracy(label_train, inference)
     predicted = nn.predict(inference)
 
-# reuse the network for testing on the whole dataset
+# reuse the network for testing
 with tf.variable_scope("inference", reuse=True):
     inference_test, inference_test_sigmoid = nn.inference(q1_test, q2_test)
     loss_test = nn.loss(label_test, inference_test)
     accuracy_test = nn.accuracy(label_test, inference_test)
 
+# reuse the network for validating
 with tf.variable_scope("inference", reuse=True):
     inference_val, _ = nn.inference(q1_val, q2_val)
     loss_val = nn.loss(label_val, inference_val)
@@ -116,20 +120,13 @@ sess.run(iterator_train.initializer)
 sess.run(iterator_test.initializer)
 sess.run(iterator_val.initializer)
 
-# # evaluation
-evaluation_interval = 100     # evaluation interval is ARBITRARY
-save_interval = 1000          # Every Epoch
-model_name = 'lstm'
 saver = uj.get_saver(model_name, sess, is_continue_training=False)
-# train_writer, test_writer = uj.get_writers(sess, model_name)
-
 
 # handling multi-threading
 coord = tf.train.Coordinator()
 threads = tf.train.start_queue_runners(sess=sess, coord=coord)
 
 train_writer = tf.summary.FileWriter('./log_dir/lstm_train', sess.graph)
-# test_writer = tf.summary.FileWriter('./log_dir/lstm_test')
 
 f = open("training_stat.txt", "w")
 f.write("step\ttrain_loss\ttrain_acc\tval_loss\tval_acc\n")
@@ -139,7 +136,7 @@ f.flush()
 eval_result_list = list()
 pred_result_list = list()
 
-for i in range(100000):
+for i in range(max_steps):
     # run training session
     try:
         result = sess.run([loss, accuracy, train_step, label_train, predicted, inference, summary_op],
@@ -156,15 +153,19 @@ for i in range(100000):
 
     # run validating session
     if i % evaluation_interval == 0:
-        total_loss, total_acc = list(), list()
+        try:
+            total_loss, total_acc = list(), list()
 
-        _loss_val, _acc_val, _inf_val = sess.run([loss_val, accuracy_val, inference_val])
+            _loss_val, _acc_val, _inf_val = sess.run([loss_val, accuracy_val, inference_val],
+                                                     feed_dict={is_training: False})
 
-        print("Validating at step: {}, loss: {}, acc: {}".format(i, _loss_val, _acc_val))
+            print("Validating at step: {}, loss: {}, acc: {}".format(i, _loss_val, _acc_val))
 
-        f.write(str(i) + "\t" + str(result[0]) + "\t" + str(result[1]) + "\t"
-                + str(_loss_val) + "\t" + str(_acc_val) + "\t" + "\n")
-        f.flush()
+            f.write(str(i) + "\t" + str(result[0]) + "\t" + str(result[1]) + "\t"
+                    + str(_loss_val) + "\t" + str(_acc_val) + "\t" + "\n")
+            f.flush()
+        except tf.errors.OutOfRangeError:
+            sess.run(iterator_val.initializer)  # reset the test set iterator
 
     # Run through the test set
     if i % save_interval == 0:
@@ -174,7 +175,8 @@ for i in range(100000):
 
         while True:
             try:
-                pred_test, test_loss, test_acc = sess.run([inference_test_sigmoid, loss_test, accuracy_test])
+                pred_test, test_loss, test_acc = sess.run([inference_test_sigmoid, loss_test, accuracy_test],
+                                                          feed_dict={is_training: False})
                 predictions += list(np.squeeze(pred_test))
 
             except tf.errors.OutOfRangeError:

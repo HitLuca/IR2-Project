@@ -40,7 +40,6 @@ class Example:
         }
 
 
-# TODO: take this from args
 mode = "val"
 
 q1_key = "subject"
@@ -51,54 +50,51 @@ df_paths = {"train":     "./Yahoo/train_df_reduced_no_empty.p",
             "val":       "./Yahoo/val_df_reduced_no_empty.p",
             "val_sim":   "./Yahoo/val_df_sim_len.p",
             "pruned":    "./Yahoo/train_pruned_alot.p",
-            "test": ""}
+            "test":      "./Yahoo/test_set_1018_preprocessed.p"}
 
 output_paths = {"train":     "./Yahoo/train_lstm.tfrecord",
                 "train_sim": "./Yahoo/train_lstm_sim_len.tfrecord",
-                "val":       "./Yahoo/val_lstm_5000.tfrecord",
+                "val":       "./Yahoo/val_lstm.tfrecord",
                 "val_sim":   "./Yahoo/val_lstm_sim_len.tfrecord",
                 "pruned":    "./Yahoo/train_pruned.tfrecord",
-                "test":      "./Yahoo/test_lstm.tfrecord"}
+                "test":      "./Yahoo/test_lstm_1018.tfrecord"}
 
 output_file_name = output_paths[mode]
 
-##### READING DATA FROM DF
+# READING DATA FROM DF
 df = pd.read_pickle(df_paths[mode])
 
-# set the label of +ve samples to 1.0
-df['label'] = 1.0
+if mode == "test":
+    df_all = df.loc[:, [q1_key, q2_key, 'label']]
+else:
+    # set the label of +ve samples to 1.0
+    df['label'] = 1.0
 
-# select interested columns
-df = df.loc[:, [q1_key, q2_key, 'label']]
+    # select interested columns
+    df = df.loc[:, [q1_key, q2_key, 'label']]
 
-# select the subject and answer, then ONLY shuffle the answer
-df_sp = df.loc[:, [q1_key]]
-df_bp = df.loc[:, [q2_key]]
-df_bp = df_bp.sample(frac=1.0)      # shuffle the answer only
+    # select the subject and answer, then ONLY shuffle the answer
+    df_sp = df.loc[:, [q1_key]]
+    df_bp = df.loc[:, [q2_key]]
+    df_bp = df_bp.sample(frac=1.0)      # shuffle the answer only
 
-df_sp.reset_index(drop=True, inplace=True)
-df_bp.reset_index(drop=True, inplace=True)
+    df_sp.reset_index(drop=True, inplace=True)
+    df_bp.reset_index(drop=True, inplace=True)
 
-df_neg = pd.concat([df_sp, df_bp], axis=1)  # combine the originally ordered subject with shuffled answer
-df_neg['label'] = 0.0                       # add label as not relevant for -ve sample
+    df_neg = pd.concat([df_sp, df_bp], axis=1)  # combine the originally ordered subject with shuffled answer
+    df_neg['label'] = 0.0                       # add label as not relevant for -ve sample
 
-df_all = pd.concat([df, df_neg], axis=0)    # concatenate the original data with the -ve sample
+    df_all = pd.concat([df, df_neg], axis=0)    # concatenate the original data with the -ve sample
 
-df_all = df_all.sample(frac=1.0)            # shuffle the dataset
-df_all = df_all.dropna()                    # remove nan, just to be sure
+    df_all = df_all.sample(frac=1.0)            # shuffle the dataset
+    df_all = df_all.dropna()                    # remove nan, just to be sure
 
-# TODO: Find a better way to do this
-# sample a subset for testing purpose
-df_all = df_all.sample(n=5000)
-
-# TODO: UNIFY THE EFFING KEYS!!!!!
-subject = df_all.subject.values
-bestanswer = df_all.bestanswer.values
-labels = df_all.label.values
+subject = df_all[q1_key].as_matrix()
+bestanswer = df_all[q2_key].as_matrix()
+labels = df_all['label'].as_matrix()
 
 num_sample = subject.shape[0]
 print("Total number of samples to be written in TFRecord: {}".format(num_sample))
-
 
 # Open a new writer.
 writer = tf.python_io.TFRecordWriter(output_file_name)
