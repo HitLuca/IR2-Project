@@ -1,2 +1,0 @@
-python main.py --input_dir NP2003/Fold1/ --model_dir models/pointwiseclassification/ --validation --pointwise_class &
-python main.py --input_dir NP2003/Fold1/ --model_dir models/pointwiseclassification/ --train --pointwise_class &
